@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Олимпиадская застава</title>
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- Tailwind + Google Fonts (Inter, жирный уверенный) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
         @keyframes fadeSlideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -20,12 +26,13 @@
         }
         .animate-fade-slide { animation: fadeSlideUp 0.3s ease-out forwards; }
         .animate-fade { animation: fadeIn 0.2s ease-out; }
+        
+        /* Нижняя навигация Telegram-стиль */
         .bottom-nav {
             background: rgba(255,255,255,0.96);
             backdrop-filter: blur(20px);
             border-radius: 30px 30px 0 0;
             box-shadow: 0 -2px 12px rgba(0,0,0,0.05);
-            transition: all 0.2s;
         }
         .nav-item {
             transition: all 0.2s;
@@ -89,89 +96,119 @@
             background: #f3f4f6;
             border-left: 4px solid #22c55e;
         }
+        /* прямоугольный логотип без обрезания */
+        .logo-img {
+            max-height: 48px;
+            width: auto;
+            object-fit: contain;
+        }
+        /* шапка белая, по центру логотип */
+        .white-header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        /* синий блок приветствия с закруглёнными углами */
+        .greeting-blue-block {
+            background: #4f46e5;
+            border-radius: 24px;
+            margin: 16px;
+            padding: 20px 20px;
+            box-shadow: 0 8px 20px rgba(79,70,229,0.25);
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans pb-20">
 
-<!-- ЭКРАН ВХОДА -->
+<!-- ЭКРАН АВТОРИЗАЦИИ -->
 <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-800 to-indigo-900">
     <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 animate-fade-slide">
         <div class="text-center mb-5">
-            <img id="authLogo" src="img1/logo.png" alt="Лого" class="w-20 h-20 mx-auto rounded-full object-cover" onerror="this.onerror=null; this.style.display='none'; this.nextSibling.style.display='flex'">
-            <div style="display:none" class="w-20 h-20 bg-indigo-100 rounded-full mx-auto flex items-center justify-center text-indigo-600 text-2xl"><i class="fas fa-shield-alt"></i></div>
-            <h1 class="text-2xl font-bold mt-2">Олимпиадская застава</h1>
+            <!-- прямоугольный логотип (не круг) -->
+            <img id="authLogo" src="img1/logo.png" alt="Логотип" class="logo-img mx-auto h-16 w-auto object-contain" onerror="this.onerror=null; this.style.display='none'; this.nextSibling.style.display='flex'">
+            <div style="display:none" class="w-16 h-16 bg-indigo-100 rounded-2xl mx-auto flex items-center justify-center text-indigo-600 text-2xl"><i class="fas fa-shield-alt"></i></div>
+            <h1 class="text-2xl font-black mt-3 tracking-tight">Олимпиадская застава</h1>
+            <p class="text-gray-500 text-sm">Платформа для испытаний</p>
         </div>
         <form id="loginForm">
             <input type="email" id="loginEmail" placeholder="Email" class="w-full border rounded-xl p-3 mb-3" required>
             <input type="password" id="loginPassword" placeholder="Пароль" class="w-full border rounded-xl p-3 mb-4" required>
-            <button class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold">Войти</button>
+            <button class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-base shadow-md">Войти</button>
         </form>
-        <p class="text-xs text-center text-gray-400 mt-4">Аккаунты создаёт администратор</p>
+        <p class="text-xs text-center text-gray-400 mt-4">Аккаунты создаются администратором</p>
     </div>
 </div>
 
 <!-- ГЛАВНОЕ ПРИЛОЖЕНИЕ -->
 <div id="mainApp" class="hidden min-h-screen flex flex-col">
-    <!-- Синий блок приветствия с логотипом -->
-    <div class="bg-indigo-600 px-5 pt-8 pb-5 rounded-b-3xl shadow-lg">
+    <!-- БЕЛАЯ ШАПКА ПО ЦЕНТРУ (логотип) -->
+    <div class="white-header py-3 px-4 flex justify-center items-center sticky top-0 z-20 bg-white">
+        <img id="mainLogo" src="img1/logo.png" alt="Логотип" class="logo-img h-12 w-auto object-contain" onerror="this.onerror=null; this.style.display='none'">
+    </div>
+
+    <!-- СИНИЙ БЛОК ПРИВЕТСТВИЯ (отдельный, с закруглениями) -->
+    <div class="greeting-blue-block mx-4 mt-2">
         <div class="flex items-center gap-3">
-            <img id="mainLogo" src="img1/logo.png" class="w-12 h-12 rounded-full object-cover border-2 border-white" onerror="this.onerror=null; this.style.display='none'">
+            <div class="bg-white/20 rounded-full w-12 h-12 flex items-center justify-center text-white text-xl font-bold" id="greetingAvatar">👤</div>
             <div>
-                <div id="greetingText" class="text-indigo-100 text-sm"></div>
-                <div id="userDisplayName" class="text-white text-xl font-bold"></div>
+                <div id="greetingText" class="text-indigo-100 text-sm font-medium"></div>
+                <div id="userDisplayName" class="text-white text-xl font-extrabold tracking-tight"></div>
             </div>
         </div>
     </div>
 
-    <!-- Контент -->
+    <!-- Контентная область -->
     <div class="flex-1 p-4 pb-24 overflow-y-auto">
         <div id="tasksPanel" class="tab-content w-full">
             <div id="tasksListContainer" class="space-y-4"></div>
         </div>
         <div id="constructorPanel" class="tab-content hidden w-full">
             <div class="bg-white rounded-2xl p-4 shadow-sm mb-6 animate-fade">
-                <h2 class="text-lg font-bold mb-3">Новое задание</h2>
+                <h2 class="text-xl font-black tracking-tight mb-3">Новое задание</h2>
                 <input type="text" id="taskName" placeholder="Название" class="w-full border rounded-xl p-2 mb-2">
                 <input type="text" id="taskClass" placeholder="Класс (7А, 8Б)" class="w-full border rounded-xl p-2 mb-4">
                 <div id="elementsContainer" class="space-y-4 max-h-96 overflow-auto mb-4"></div>
                 <div class="flex gap-2 mb-4 flex-wrap">
-                    <button id="addTextBtn" class="bg-gray-100 px-3 py-1.5 rounded-full text-sm"><i class="fas fa-paragraph mr-1"></i> Текст</button>
-                    <button id="addChoiceBtn" class="bg-gray-100 px-3 py-1.5 rounded-full text-sm"><i class="fas fa-list mr-1"></i> Вопрос с выбором</button>
-                    <button id="addTextareaBtn" class="bg-gray-100 px-3 py-1.5 rounded-full text-sm"><i class="fas fa-edit mr-1"></i> Текстовое поле</button>
+                    <button id="addTextBtn" class="bg-gray-100 px-3 py-1.5 rounded-full text-sm font-medium"><i class="fas fa-paragraph mr-1"></i> Текст</button>
+                    <button id="addChoiceBtn" class="bg-gray-100 px-3 py-1.5 rounded-full text-sm font-medium"><i class="fas fa-list mr-1"></i> Вопрос с выбором</button>
+                    <button id="addTextareaBtn" class="bg-gray-100 px-3 py-1.5 rounded-full text-sm font-medium"><i class="fas fa-edit mr-1"></i> Текстовое поле</button>
                 </div>
-                <button id="publishTaskBtn" class="bg-green-600 w-full text-white py-2 rounded-xl font-semibold">Опубликовать</button>
+                <button id="publishTaskBtn" class="bg-green-600 w-full text-white py-2 rounded-xl font-bold">Опубликовать</button>
             </div>
-            <div class="bg-white rounded-2xl p-4"><h3 class="font-bold mb-2">Мои задания</h3><div id="myPublishedTasks" class="space-y-2"></div></div>
+            <div class="bg-white rounded-2xl p-4"><h3 class="font-black mb-2">Мои задания</h3><div id="myPublishedTasks" class="space-y-2"></div></div>
         </div>
         <div id="profilePanel" class="tab-content hidden w-full">
             <div class="bg-white rounded-2xl p-5 shadow-sm text-center animate-fade">
-                <div class="w-24 h-24 bg-indigo-100 rounded-full mx-auto flex items-center justify-center text-3xl font-bold text-indigo-700 mb-3" id="profileAvatar"></div>
-                <h2 id="profileName" class="text-xl font-bold"></h2>
-                <p id="profileEmail" class="text-gray-500 text-sm"></p>
-                <p class="mt-1"><span class="font-semibold">Роль:</span> <span id="profileRole"></span> &nbsp;|&nbsp; <span class="font-semibold">Класс:</span> <span id="profileClass"></span></p>
-                <button id="logoutBtnBottom" class="mt-6 bg-red-500 text-white py-2 px-5 rounded-xl w-full">Выйти</button>
+                <div class="w-24 h-24 bg-indigo-100 rounded-2xl mx-auto flex items-center justify-center text-3xl font-black text-indigo-700 mb-3" id="profileAvatar"></div>
+                <h2 id="profileName" class="text-xl font-black tracking-tight"></h2>
+                <p id="profileEmail" class="text-gray-500 text-sm mt-1"></p>
+                <p class="mt-2"><span class="font-bold">Роль:</span> <span id="profileRole"></span> &nbsp;|&nbsp; <span class="font-bold">Класс:</span> <span id="profileClass"></span></p>
+                <button id="logoutBtnBottom" class="mt-6 bg-red-500 text-white py-2 px-5 rounded-xl w-full font-bold">Выйти</button>
+                <!-- серая маленькая надпись (юмористическая) -->
+                <div class="mt-6 text-xs text-gray-400 border-t pt-4">
+                    Сайт создан в развлекательных и юмористических целях и не несёт негативный характер. Данной организации не существует.
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Нижняя навигация -->
+    <!-- Нижняя навигация (Telegram-style) -->
     <div class="bottom-nav fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-2 px-4 z-20">
-        <button data-nav="tasks" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-tasks text-xl"></i><span class="text-xs mt-1">Задания</span></button>
-        <button data-nav="constructor" class="nav-item mentor-only flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-pen-ruler text-xl"></i><span class="text-xs mt-1">Конструктор</span></button>
-        <button data-nav="profile" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-user-circle text-xl"></i><span class="text-xs mt-1">Профиль</span></button>
+        <button data-nav="tasks" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-tasks text-xl"></i><span class="text-xs mt-1 font-semibold">Задания</span></button>
+        <button data-nav="constructor" class="nav-item mentor-only flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-pen-ruler text-xl"></i><span class="text-xs mt-1 font-semibold">Конструктор</span></button>
+        <button data-nav="profile" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-user-circle text-xl"></i><span class="text-xs mt-1 font-semibold">Профиль</span></button>
     </div>
 </div>
 
 <!-- Модалка прохождения -->
 <div id="quizModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col animate-fade">
-        <div class="p-4 border-b flex justify-between items-center"><h2 id="modalTaskTitle" class="font-bold text-lg"></h2><button id="closeModalBtn" class="text-2xl">&times;</button></div>
+        <div class="p-4 border-b flex justify-between items-center"><h2 id="modalTaskTitle" class="font-black text-lg"></h2><button id="closeModalBtn" class="text-2xl">&times;</button></div>
         <div id="quizContent" class="flex-1 overflow-auto p-4 space-y-4"></div>
         <div class="p-3 border-t flex justify-between">
-            <button id="quizPrev" class="bg-gray-200 px-4 py-2 rounded-xl disabled:opacity-40">Назад</button>
+            <button id="quizPrev" class="bg-gray-200 px-4 py-2 rounded-xl disabled:opacity-40 font-medium">Назад</button>
             <span id="quizStepCounter" class="text-sm text-gray-500 self-center"></span>
-            <button id="quizNext" class="bg-indigo-600 text-white px-4 py-2 rounded-xl">Далее</button>
-            <button id="quizFinal" class="bg-green-600 text-white px-4 py-2 rounded-xl hidden">Завершить</button>
+            <button id="quizNext" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold">Далее</button>
+            <button id="quizFinal" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold hidden">Завершить</button>
         </div>
     </div>
 </div>
@@ -184,9 +221,8 @@
 
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
     let currentTask = null, currentAnswers = [], currentElements = [], currentStep = 0;
-    let completedTasksIds = new Set(); // для отметки пройденных
+    let completedTasksIds = new Set();
 
-    // Всплывающее уведомление (не alert)
     function showToast(message, isError = false) {
         let existing = document.querySelector('.toast-notify');
         if(existing) existing.remove();
@@ -198,7 +234,6 @@
         setTimeout(() => toast.remove(), 2800);
     }
 
-    // Вибрация (если поддерживается)
     function vibrate() { if(navigator.vibrate) navigator.vibrate(10); }
 
     async function loadUserData(uid) {
@@ -211,7 +246,6 @@
         } else { showToast("Роль не назначена администратором", true); return false; }
     }
 
-    // Получение списка пройденных заданий ученика
     async function loadCompletedTasks() {
         if(userRole !== "student") return;
         let snap = await db.collection("results").where("studentId","==",currentUserObj.uid).get();
@@ -253,13 +287,19 @@
         document.getElementById("profileClass").innerText = userClass || "—";
         let initial = userDisplayName.charAt(0).toUpperCase();
         document.getElementById("profileAvatar").innerText = initial;
-        try { document.getElementById("authLogo").src = "img1/logo.png"; document.getElementById("mainLogo").src = "img1/logo.png"; } catch(e){}
+        document.getElementById("greetingAvatar").innerHTML = initial;
+        try { 
+            let logoPath = "img1/logo.png";
+            document.getElementById("authLogo").src = logoPath;
+            document.getElementById("mainLogo").src = logoPath;
+        } catch(e){}
     }
     function setGreeting() {
         let hour = new Date().getHours();
         let text = hour < 12 ? "Доброе утро" : (hour < 18 ? "Добрый день" : "Добрый вечер");
         document.getElementById("greetingText").innerHTML = text;
     }
+
     function switchNav(tab) {
         vibrate();
         document.querySelectorAll(".tab-content").forEach(el=>el.classList.add("hidden"));
@@ -283,9 +323,9 @@
             let isCompleted = userRole==="student" && completedTasksIds.has(t.id);
             let card = document.createElement("div");
             card.className = `task-card bg-white rounded-xl shadow p-4 transition ${isCompleted ? 'completed' : ''}`;
-            card.innerHTML = `<div class="font-bold">${escapeHtml(t.title)}</div><div class="text-sm text-gray-500">Класс: ${t.targetClass} | Этапов: ${t.elements?.length||0}</div>
-            ${isCompleted ? '<div class="text-green-600 text-xs mt-1"><i class="fas fa-check-circle"></i> Пройдено</div>' : ''}
-            <button data-id="${t.id}" class="task-start mt-3 bg-indigo-50 text-indigo-700 py-1.5 px-3 rounded-xl w-full">${userRole==="student" ? (isCompleted ? "Просмотр" : "Начать") : "Посмотреть"}</button>`;
+            card.innerHTML = `<div class="font-black text-lg tracking-tight">${escapeHtml(t.title)}</div><div class="text-sm text-gray-500 mt-1">Класс: ${t.targetClass} • Этапов: ${t.elements?.length||0}</div>
+            ${isCompleted ? '<div class="text-green-600 text-xs mt-1 font-bold"><i class="fas fa-check-circle"></i> Пройдено</div>' : ''}
+            <button data-id="${t.id}" class="task-start mt-3 bg-indigo-50 text-indigo-700 font-bold py-1.5 px-3 rounded-xl w-full">${userRole==="student" ? (isCompleted ? "Просмотр" : "Начать") : "Посмотреть"}</button>`;
             container.appendChild(card);
         }
         document.querySelectorAll(".task-start").forEach(btn=>btn.addEventListener("click", async(e)=>{
@@ -300,7 +340,7 @@
         }));
     }
 
-    // ---------- КОНСТРУКТОР С ФОТО (данные сохраняются без потерь) ----------
+    // ---------- КОНСТРУКТОР С ФОТО ----------
     let elementsStore = [];
     function renderConstructorUI() {
         let container = document.getElementById("elementsContainer");
@@ -309,7 +349,7 @@
         elementsStore.forEach((el, idx) => {
             let div = document.createElement("div");
             div.className = "border rounded-xl p-3 bg-gray-50";
-            div.innerHTML = `<div class="flex justify-between items-center"><b>${el.type==='text'?'Текст':el.type==='choice'?'Выбор ответа':'Текстовое поле'}</b><button data-idx="${idx}" class="delElem text-red-500 text-sm">Удалить</button></div>`;
+            div.innerHTML = `<div class="flex justify-between items-center"><b class="font-bold">${el.type==='text'?'Текст':el.type==='choice'?'Выбор ответа':'Текстовое поле'}</b><button data-idx="${idx}" class="delElem text-red-500 text-sm">Удалить</button></div>`;
             if(el.type === 'text') {
                 div.innerHTML += `<textarea class="w-full border p-2 rounded mt-1 content-text" placeholder="Текст">${el.content||''}</textarea><input placeholder="Баллы (0)" class="w-24 border p-1 mt-1 pointsVal" value="${el.points||0}">`;
             } else if(el.type === 'choice') {
@@ -318,10 +358,9 @@
                 div.innerHTML += `<textarea class="w-full border p-2 mt-1 content-text" placeholder="Текст вопроса">${el.content||''}</textarea><input placeholder="Баллы" class="w-24 border p-1 mt-1 pointsVal" value="${el.points||1}">`;
             }
             if(el.imageBase64) div.innerHTML += `<div class="mt-2 relative"><img src="${el.imageBase64}" class="h-16 rounded border cursor-pointer preview-img"><button data-idx="${idx}" class="remove-photo text-xs text-red-500 ml-2">Удалить фото</button></div>`;
-            div.innerHTML += `<button data-idx="${idx}" class="add-photo-btn text-xs bg-gray-200 px-2 py-1 rounded mt-2">📷 Добавить фото</button><input type="file" accept="image/*" class="photo-file hidden" data-idx="${idx}">`;
+            div.innerHTML += `<button data-idx="${idx}" class="add-photo-btn text-xs bg-gray-200 px-2 py-1 rounded mt-2 font-medium">📷 Добавить фото</button><input type="file" accept="image/*" class="photo-file hidden" data-idx="${idx}">`;
             container.appendChild(div);
         });
-        // обработчики
         document.querySelectorAll(".delElem").forEach(btn=>btn.addEventListener("click",(e)=>{ let i=btn.dataset.idx; elementsStore.splice(i,1); renderConstructorUI(); }));
         document.querySelectorAll(".add-photo-btn").forEach(btn=>btn.addEventListener("click",(e)=>{
             let idx=btn.dataset.idx; let fileInput = btn.parentElement.querySelector(".photo-file"); fileInput.click();
@@ -373,7 +412,7 @@
         let snap = await db.collection("tasks").where("createdBy","==",currentUserObj.uid).get();
         let cont = document.getElementById("myPublishedTasks");
         cont.innerHTML = "";
-        snap.forEach(doc=>{ cont.innerHTML += `<div class="border-b py-2 flex justify-between"><span>${doc.data().title} (${doc.data().targetClass})</span><button data-id="${doc.id}" class="delMine text-red-500 text-sm">Удалить</button></div>`; });
+        snap.forEach(doc=>{ cont.innerHTML += `<div class="border-b py-2 flex justify-between items-center"><span class="font-medium">${doc.data().title} (${doc.data().targetClass})</span><button data-id="${doc.id}" class="delMine text-red-500 text-sm">Удалить</button></div>`; });
         document.querySelectorAll(".delMine").forEach(btn=>btn.addEventListener("click", async(e)=>{ if(confirm("Удалить задание?")){ await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasks(); showToast("Удалено"); } }));
     }
 
@@ -394,16 +433,16 @@
         let ans = currentAnswers[currentStep];
         let html = `<div class="mb-2 font-bold">Шаг ${currentStep+1} из ${currentElements.length}</div>`;
         if(el.imageBase64) html += `<img src="${el.imageBase64}" class="modal-photo my-2 max-h-32 rounded cursor-pointer" onclick="showImagePopup('${el.imageBase64}')">`;
-        if(el.type === 'text') html += `<div class="bg-gray-100 p-3 rounded">${escapeHtml(el.content) || "Информация"}</div>`;
+        if(el.type === 'text') html += `<div class="bg-gray-100 p-3 rounded-xl">${escapeHtml(el.content) || "Информация"}</div>`;
         else if(el.type === 'choice') {
-            html += `<div class="font-medium">${escapeHtml(el.content)}</div><div class="space-y-2 mt-2">`;
+            html += `<div class="font-black text-lg">${escapeHtml(el.content)}</div><div class="space-y-2 mt-2">`;
             el.options.forEach((opt,idx)=>{
                 let selected = (ans && ans.selected === idx);
                 html += `<div class="quiz-option p-2 rounded-xl cursor-pointer flex items-center gap-2" data-opt="${idx}"><div class="w-5 h-5 rounded-full border ${selected?'bg-indigo-600 border-indigo-600':'border-gray-300'}"></div> ${escapeHtml(opt)}</div>`;
             });
-            html += `</div><div class="text-xs text-gray-400 mt-2">Баллов: ${el.points}</div>`;
+            html += `</div><div class="text-xs text-gray-400 mt-2 font-medium">Баллов: ${el.points}</div>`;
         } else if(el.type === 'textarea') {
-            html += `<div class="font-medium">${escapeHtml(el.content)}</div><textarea id="textareaAns" class="w-full border rounded-xl p-2 mt-2" rows="3" placeholder="Ваш ответ">${ans || ''}</textarea><div class="text-xs text-gray-400 mt-1">Баллов: ${el.points}</div>`;
+            html += `<div class="font-black">${escapeHtml(el.content)}</div><textarea id="textareaAns" class="w-full border rounded-xl p-2 mt-2" rows="3" placeholder="Ваш ответ">${ans || ''}</textarea><div class="text-xs text-gray-400 mt-1 font-medium">Баллов: ${el.points}</div>`;
         }
         container.innerHTML = html;
         document.getElementById("quizStepCounter").innerText = `${currentStep+1}/${currentElements.length}`;
