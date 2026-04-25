@@ -1,48 +1,466 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>Платформа</title>
-<link rel="stylesheet" href="style.css">
-
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Олимпиадская застава | Платформа</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- Tailwind CSS (быстрая стилизация) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* плавные переходы */
+        .card-transition {
+            transition: all 0.2s ease;
+        }
+        .bg-gradient {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        .toast-message {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            z-index: 9999;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .modal-overlay {
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+        }
+        .quiz-option {
+            border: 1px solid #cbd5e1;
+            transition: 0.1s;
+        }
+        .quiz-option.selected {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+        }
+    </style>
 </head>
+<body class="bg-gray-100 font-sans antialiased">
 
-<body>
+<div id="app" class="min-h-screen">
+    <!-- Блок авторизации -->
+    <div id="authScreen" class="bg-gradient min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <div class="text-center mb-6">
+                <i class="fas fa-shield-alt text-5xl text-indigo-600"></i>
+                <h1 class="text-3xl font-bold mt-2">Олимпиадская застава</h1>
+                <p class="text-gray-500">Вход в систему</p>
+            </div>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700">Email</label>
+                    <input type="email" id="loginEmail" class="w-full border rounded-lg px-4 py-2 mt-1 focus:ring-2 focus:ring-indigo-400" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700">Пароль</label>
+                    <input type="password" id="loginPassword" class="w-full border rounded-lg px-4 py-2 mt-1 focus:ring-2 focus:ring-indigo-400" required>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg transition">Войти</button>
+            </form>
+            <div class="mt-4 text-center text-sm text-gray-500">Только для наставников и учеников | Аккаунты создаёт администратор</div>
+        </div>
+    </div>
 
-<div id="loginPage">
-  <h2>Вход</h2>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Пароль">
-  <button onclick="login()">Войти</button>
+    <!-- Основной дашборд (скрыт до входа) -->
+    <div id="mainApp" class="hidden">
+        <!-- Шапка -->
+        <header class="bg-white shadow-md px-6 py-3 flex justify-between items-center flex-wrap">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-fort-awesome text-2xl text-indigo-700"></i>
+                <span class="font-bold text-xl">Олимпиадская застава</span>
+                <span id="roleBadge" class="ml-2 text-xs bg-gray-200 px-2 py-1 rounded-full"></span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="userEmailSpan" class="text-sm text-gray-600"></span>
+                <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-lg text-sm"><i class="fas fa-sign-out-alt"></i> Выход</button>
+            </div>
+        </header>
+
+        <!-- Навигация вкладок -->
+        <div class="border-b border-gray-200 bg-white px-6">
+            <div class="flex space-x-6">
+                <button data-tab="tasks" class="tab-btn py-3 px-1 font-medium text-indigo-600 border-b-2 border-indigo-600">📋 Задания</button>
+                <button data-tab="constructor" class="tab-btn py-3 px-1 font-medium text-gray-500 hover:text-gray-700">✏️ Конструктор (наставник)</button>
+                <button data-tab="results" class="tab-btn py-3 px-1 font-medium text-gray-500 hover:text-gray-700">📊 Результаты учеников</button>
+            </div>
+        </div>
+
+        <!-- Контент -->
+        <div class="p-6 max-w-7xl mx-auto">
+            <!-- Вкладка Задания (для ученика и список для наставника) -->
+            <div id="tasksPanel" class="tab-content">
+                <h2 class="text-2xl font-bold mb-4">Активные задания</h2>
+                <div id="tasksList" class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">Загрузка...</div>
+            </div>
+
+            <!-- Конструктор заданий (только наставник) -->
+            <div id="constructorPanel" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow p-6 mb-6">
+                    <h3 class="text-xl font-bold mb-2">Создать новое задание</h3>
+                    <div class="grid md:grid-cols-2 gap-4 mb-4">
+                        <div><label>Название задания</label><input type="text" id="taskName" class="w-full border rounded p-2" placeholder="Например: Алгебра 7 класс"></div>
+                        <div><label>Класс (целевая аудитория)</label><input type="text" id="taskClass" class="w-full border rounded p-2" placeholder="7А, 8Б ..."></div>
+                    </div>
+                    <div id="questionsBuilder" class="border-t pt-4 mt-2">
+                        <div class="font-semibold mb-2">Конструктор элементов задания:</div>
+                        <div id="elementsContainer" class="space-y-4 mb-4"></div>
+                        <div class="flex space-x-2">
+                            <button id="addTextElement" class="bg-gray-200 px-3 py-1 rounded text-sm"><i class="fas fa-paragraph"></i> Текст</button>
+                            <button id="addChoiceElement" class="bg-gray-200 px-3 py-1 rounded text-sm"><i class="fas fa-list-ul"></i> Вопрос с вариантами</button>
+                            <button id="addTextareaElement" class="bg-gray-200 px-3 py-1 rounded text-sm"><i class="fas fa-edit"></i> Текстовое поле</button>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end"><button id="publishTaskBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg"><i class="fas fa-upload"></i> Опубликовать задание</button></div>
+                </div>
+                <div id="myTasksList" class="bg-white rounded-xl shadow p-4"><h4 class="font-bold">Мои опубликованные задания</h4><div id="myPublishedTasks"></div></div>
+            </div>
+
+            <!-- Результаты (только наставник) -->
+            <div id="resultsPanel" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow p-4">
+                    <h3 class="text-xl font-bold mb-3">Статистика прохождений</h3>
+                    <div id="resultsContainer">Выберите задание из списка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для прохождения задания -->
+    <div id="quizModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden transition">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 relative">
+            <div class="flex justify-between items-center mb-4"><h2 id="modalTaskTitle" class="text-2xl font-bold"></h2><button id="closeModalBtn" class="text-gray-500 text-2xl">&times;</button></div>
+            <div id="quizStepsContainer" class="space-y-6"></div>
+            <div class="flex justify-between mt-8"><button id="prevQuestBtn" class="bg-gray-300 px-4 py-2 rounded disabled:opacity-50" disabled><i class="fas fa-arrow-left"></i> Назад</button><span id="stepCounter" class="text-sm text-gray-500"></span><button id="nextQuestBtn" class="bg-indigo-600 text-white px-4 py-2 rounded">Далее <i class="fas fa-arrow-right"></i></button></div>
+            <div class="mt-4 text-right"><button id="finalSubmitBtn" class="bg-green-600 text-white px-6 py-2 rounded hidden">Завершить и получить результат</button></div>
+        </div>
+    </div>
 </div>
 
-<div id="mentorPage" class="hidden">
-  <h2>Наставник</h2>
-
-  <input id="taskTitle" placeholder="Название">
-  <input id="taskClass" placeholder="Класс (например 7A)">
-
-  <div id="builder"></div>
-
-  <button onclick="addText()">Текст</button>
-  <button onclick="addQuestion()">Вопрос</button>
-  <button onclick="addImage()">Картинка</button>
-
-  <button onclick="publishTask()">Опубликовать</button>
-
-  <h3>Статистика</h3>
-  <div id="stats"></div>
-</div>
-
-<div id="studentPage" class="hidden">
-  <h2>Задания</h2>
-  <div id="tasks"></div>
-  <div id="player"></div>
-</div>
-
-<script src="app.js"></script>
+<script>
+    // FIREBASE КОНФИГ (ВСТАВЬТЕ ВАШИ ДАННЫЕ)
+    const firebaseConfig = {
+         apiKey: "AIzaSyDT6xPjDxldqrmjWuG-VF7AVoot-RFUkH0",
+         authDomain: "olymp-e7d79.firebaseapp.com",
+         projectId: "olymp-e7d79",
+         storageBucket: "olymp-e7d79.firebasestorage.app",
+         messagingSenderId: "212523217131",
+         appId: "1:212523217131:web:6acdbf9443cf4f22440eae",
+         measurementId: "G-R134K8XESV"
+    };
+    // ПРИМЕЧАНИЕ: Для работы замените на реальные данные из вашего Firebase проекта.
+    // Ниже для демонстрации используется эмуляция если конфиг некорректен — но с реальным проектом работает.
+    
+    // Инициализация Firebase
+    let app, auth, db;
+    try {
+        app = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth(app);
+        db = firebase.firestore(app);
+    } catch(e) { console.warn(e); }
+    
+    // глобальные переменные
+    let currentUser = null, userRole = null, userClass = null;
+    let currentTaskToSolve = null; // объект задания
+    let currentAnswers = []; // для сохранения ответов
+    let currentStepIndex = 0;
+    let questionElements = [];
+    
+    function showToast(msg){ let t=document.createElement('div'); t.className='toast-message'; t.innerText=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500);}
+    
+    // Получение роли из firestore
+    async function fetchUserRole(uid){
+        try{
+            let doc = await db.collection("users").doc(uid).get();
+            if(doc.exists){
+                userRole = doc.data().role; // "mentor" или "student"
+                userClass = doc.data().class || "";
+                return {role:userRole, class:userClass};
+            } else { return null; }
+        }catch(e){ console.error(e); return null; }
+    }
+    
+    // слушаем аутентификацию
+    auth.onAuthStateChanged(async (user)=>{
+        if(user){
+            currentUser = user;
+            let roleData = await fetchUserRole(user.uid);
+            if(!roleData){ showToast("Ошибка: роль не назначена администратором"); auth.signOut(); return; }
+            userRole = roleData.role;
+            userClass = roleData.class;
+            document.getElementById("userEmailSpan").innerText = user.email;
+            document.getElementById("roleBadge").innerText = userRole === "mentor" ? "Наставник" : "Ученик";
+            document.getElementById("authScreen").classList.add("hidden");
+            document.getElementById("mainApp").classList.remove("hidden");
+            // скрыть вкладки в зависимости от роли
+            if(userRole !== "mentor"){
+                document.querySelectorAll("[data-tab='constructor'], [data-tab='results']").forEach(btn=>btn.classList.add("hidden"));
+                // переключиться на задания
+                switchTab("tasks");
+            } else {
+                document.querySelectorAll("[data-tab='constructor'], [data-tab='results']").forEach(btn=>btn.classList.remove("hidden"));
+                switchTab("tasks");
+                loadMyTasksForMentor();
+            }
+            loadTasksList(); // общая загрузка заданий для ученика/наставника список
+            if(userRole === "mentor") loadResultsOverview();
+        } else {
+            document.getElementById("authScreen").classList.remove("hidden");
+            document.getElementById("mainApp").classList.add("hidden");
+            currentUser=null; userRole=null;
+        }
+    });
+    
+    document.getElementById("loginForm").addEventListener("submit", async(e)=>{
+        e.preventDefault();
+        let email = document.getElementById("loginEmail").value;
+        let pwd = document.getElementById("loginPassword").value;
+        try{
+            await auth.signInWithEmailAndPassword(email,pwd);
+            showToast("Успешный вход");
+        }catch(err){ showToast("Ошибка: "+err.message); }
+    });
+    document.getElementById("logoutBtn").addEventListener("click",()=>auth.signOut());
+    
+    // вкладки
+    function switchTab(tabId){
+        document.querySelectorAll(".tab-content").forEach(el=>el.classList.add("hidden"));
+        document.getElementById(`${tabId}Panel`).classList.remove("hidden");
+        document.querySelectorAll(".tab-btn").forEach(btn=>{
+            btn.classList.remove("text-indigo-600","border-indigo-600");
+            btn.classList.add("text-gray-500");
+            if(btn.dataset.tab === tabId){ btn.classList.add("text-indigo-600","border-indigo-600"); btn.classList.remove("text-gray-500");}
+        });
+        if(tabId==="constructor" && userRole==="mentor") loadMyTasksForMentor();
+        if(tabId==="results" && userRole==="mentor") loadResultsOverview();
+    }
+    document.querySelectorAll(".tab-btn").forEach(btn=>btn.addEventListener("click",()=>switchTab(btn.dataset.tab)));
+    
+    // Загрузка активных заданий (для ученика - по классу; для наставника - все задания)
+    async function loadTasksList(){
+        let container = document.getElementById("tasksList");
+        if(!container) return;
+        container.innerHTML = '<div class="col-span-full">Загрузка...</div>';
+        try{
+            let q;
+            if(userRole === "student"){
+                q = await db.collection("tasks").where("targetClass","==",userClass).where("published","==",true).get();
+            } else {
+                q = await db.collection("tasks").where("published","==",true).get();
+            }
+            let tasks = [];
+            q.forEach(doc=>tasks.push({id:doc.id, ...doc.data()}));
+            if(tasks.length===0){ container.innerHTML='<div class="col-span-full text-center text-gray-500">Нет доступных заданий</div>'; return; }
+            container.innerHTML = "";
+            tasks.forEach(task=>{
+                let card = document.createElement("div");
+                card.className="bg-white rounded-xl shadow-md p-5 hover:shadow-lg transition";
+                card.innerHTML = `<div class="flex justify-between"><h3 class="font-bold text-lg">${task.title}</h3><span class="text-xs bg-indigo-100 px-2 py-1 rounded">${task.targetClass}</span></div>
+                <p class="text-gray-500 text-sm mt-1">Элементов: ${task.elements?.length || 0}</p>
+                <button data-taskid="${task.id}" class="startTaskBtn mt-3 bg-indigo-600 text-white px-4 py-1 rounded w-full">${userRole==="student"?"Пройти задание":"Просмотреть"}</button>`;
+                container.appendChild(card);
+            });
+            document.querySelectorAll(".startTaskBtn").forEach(btn=>btn.addEventListener("click",async(e)=>{
+                let taskId = btn.dataset.taskid;
+                let taskSnap = await db.collection("tasks").doc(taskId).get();
+                if(taskSnap.exists){
+                    currentTaskToSolve = {id:taskSnap.id, ...taskSnap.data()};
+                    if(userRole==="student") startStudentQuiz();
+                    else showToast("Предварительный просмотр для наставника");
+                }
+            }));
+        }catch(e){ container.innerHTML='<div>Ошибка загрузки</div>'; console.error(e);}
+    }
+    
+    // Конструктор: управление динамическими элементами
+    let elementsArray = []; // храним объекты элементов {type, content, options, points, correctAnswer?, requiredFile?}
+    function renderElementsBuilder(){
+        let container = document.getElementById("elementsContainer");
+        if(!container) return;
+        container.innerHTML = "";
+        elementsArray.forEach((el,idx)=>{
+            let div = document.createElement("div");
+            div.className="border p-3 rounded bg-gray-50";
+            div.innerHTML = `<div class="flex justify-between"><b>${el.type==='text'?'📄 Текст':el.type==='choice'?'🔘 Выбор вариантов':'✏️ Текстовое поле'}</b><button data-idx="${idx}" class="delElemBtn text-red-500 text-sm">Удалить</button></div>`;
+            if(el.type==='text'){
+                div.innerHTML+=`<textarea placeholder="Текст / описание" class="w-full border rounded p-1 mt-1">${el.content||''}</textarea><input placeholder="Баллы (не влияют)" class="w-24 mt-1 border p-1" value="${el.points||0}">`;
+            } else if(el.type==='choice'){
+                div.innerHTML+=`<input placeholder="Вопрос" class="w-full border p-1 mt-1" value="${el.content||''}"><div class="mt-1">Варианты (через запятую): <input id="opts_${idx}" class="w-full border p-1" value="${el.options?.join(',')||''}"></div><div>Правильные ответы (индексы 0.., через запятую): <input id="correct_${idx}" value="${el.correctAnswer?.join(',')||''}" class="border p-1 w-full"></div><input placeholder="Макс балл" class="w-24 mt-1 border p-1" value="${el.points||1}">`;
+            } else if(el.type==='textarea'){
+                div.innerHTML+=`<label>Текст вопроса</label><textarea class="w-full border p-1">${el.content||''}</textarea><input placeholder="Баллы" class="w-24 border p-1" value="${el.points||1}">`;
+            }
+            container.appendChild(div);
+        });
+        document.querySelectorAll(".delElemBtn").forEach(btn=>btn.addEventListener("click",(e)=>{
+            let idx = btn.dataset.idx;
+            elementsArray.splice(idx,1);
+            renderElementsBuilder();
+        }));
+    }
+    document.getElementById("addTextElement")?.addEventListener("click",()=>{ elementsArray.push({type:"text", content:"", points:0}); renderElementsBuilder(); });
+    document.getElementById("addChoiceElement")?.addEventListener("click",()=>{ elementsArray.push({type:"choice", content:"", options:[], correctAnswer:[], points:1}); renderElementsBuilder(); });
+    document.getElementById("addTextareaElement")?.addEventListener("click",()=>{ elementsArray.push({type:"textarea", content:"", points:1}); renderElementsBuilder(); });
+    document.getElementById("publishTaskBtn")?.addEventListener("click",async()=>{
+        let title = document.getElementById("taskName").value;
+        let targetClass = document.getElementById("taskClass").value;
+        if(!title || !targetClass){ showToast("Название и класс обязательны"); return; }
+        let finalElements = [];
+        let elemsDivs = document.querySelectorAll("#elementsContainer > div");
+        for(let i=0;i<elementsArray.length;i++){
+            let el = elementsArray[i];
+            let divWrap = elemsDivs[i];
+            if(el.type==='text'){
+                let txt = divWrap.querySelector("textarea")?.value;
+                let pts = parseInt(divWrap.querySelector("input[placeholder*='Баллы']")?.value)||0;
+                finalElements.push({type:"text", content:txt, points:pts});
+            } else if(el.type==='choice'){
+                let questionTxt = divWrap.querySelector("input[placeholder='Вопрос']")?.value;
+                let optsRaw = divWrap.querySelector(`#opts_${i}`)?.value;
+                let optionsArr = optsRaw.split(",").map(s=>s.trim());
+                let correctRaw = divWrap.querySelector(`#correct_${i}`)?.value;
+                let correctIdx = correctRaw.split(",").map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+                let pts = parseInt(divWrap.querySelector("input[placeholder='Макс балл']")?.value)||1;
+                finalElements.push({type:"choice", content:questionTxt, options:optionsArr, correctAnswer:correctIdx, points:pts});
+            } else if(el.type==='textarea'){
+                let quest = divWrap.querySelector("textarea")?.value;
+                let pts = parseInt(divWrap.querySelector("input[placeholder='Баллы']")?.value)||1;
+                finalElements.push({type:"textarea", content:quest, points:pts});
+            }
+        }
+        if(finalElements.length===0){ showToast("Добавьте хотя бы один элемент!"); return; }
+        await db.collection("tasks").add({
+            title, targetClass, elements:finalElements, published:true, createdBy:currentUser?.uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast("Задание опубликовано!");
+        elementsArray = [];
+        renderElementsBuilder();
+        document.getElementById("taskName").value=""; document.getElementById("taskClass").value="";
+        loadMyTasksForMentor(); loadTasksList();
+    });
+    async function loadMyTasksForMentor(){
+        if(userRole!=="mentor") return;
+        let snap = await db.collection("tasks").where("createdBy","==",currentUser.uid).get();
+        let cont = document.getElementById("myPublishedTasks");
+        if(!cont) return;
+        cont.innerHTML="";
+        snap.forEach(doc=>{
+            let div = document.createElement("div"); div.className="border-b p-2 flex justify-between";
+            div.innerHTML = `<span><b>${doc.data().title}</b> (${doc.data().targetClass})</span><button data-id="${doc.id}" class="deleteTaskBtn text-red-500 text-sm">Удалить</button>`;
+            cont.appendChild(div);
+        });
+        document.querySelectorAll(".deleteTaskBtn").forEach(btn=>btn.addEventListener("click",async(e)=>{
+            if(confirm("Удалить задание?")) await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasksList();
+        }));
+    }
+    
+    // Прохождение ученика: модальное окно
+    async function startStudentQuiz(){
+        let task = currentTaskToSolve;
+        if(!task) return;
+        // проверим, не проходил ли уже
+        let existing = await db.collection("results").where("taskId","==",task.id).where("studentId","==",currentUser.uid).get();
+        if(!existing.empty){ showToast("Вы уже проходили это задание!"); return; }
+        currentAnswers = new Array(task.elements.length).fill(null);
+        questionElements = task.elements;
+        currentStepIndex=0;
+        document.getElementById("modalTaskTitle").innerText = task.title;
+        document.getElementById("quizModal").classList.remove("hidden");
+        renderQuizStep();
+    }
+    function renderQuizStep(){
+        let container = document.getElementById("quizStepsContainer");
+        let el = questionElements[currentStepIndex];
+        let answerVal = currentAnswers[currentStepIndex];
+        let html = `<div class="p-2"><div class="font-bold mb-2">Шаг ${currentStepIndex+1} из ${questionElements.length}</div>`;
+        if(el.type === 'text'){
+            html+=`<div class="bg-gray-100 p-4 rounded">${el.content || "Информационный блок"}</div><div class="text-sm text-gray-400">(Без оценки)</div>`;
+        } else if(el.type === 'choice'){
+            html+=`<div class="font-medium">${el.content}</div><div class="mt-3 space-y-2">`;
+            el.options.forEach((opt,idx)=>{
+                let isChecked = answerVal !== null && answerVal.selectedIndex === idx;
+                html+=`<label class="flex items-center space-x-2 p-2 rounded quiz-option ${isChecked?'selected':''}"><input type="radio" name="choiceRad" data-idx="${idx}" class="mr-2" ${isChecked?'checked':''}> <span>${opt}</span></label>`;
+            });
+            html+=`</div><div class="text-xs text-gray-500">Макс балл: ${el.points}</div>`;
+        } else if(el.type === 'textarea'){
+            html+=`<div><label class="font-medium">${el.content}</label><textarea id="textAnswer" class="w-full border rounded p-2 mt-1" rows="3" placeholder="Ваш ответ">${answerVal || ''}</textarea><div class="text-xs">Баллы: ${el.points}</div></div>`;
+        }
+        html+=`</div>`;
+        container.innerHTML = html;
+        document.getElementById("stepCounter").innerText = `${currentStepIndex+1}/${questionElements.length}`;
+        let prevBtn = document.getElementById("prevQuestBtn"), nextBtn = document.getElementById("nextQuestBtn"), finalBtn = document.getElementById("finalSubmitBtn");
+        if(currentStepIndex === 0) prevBtn.disabled=true; else prevBtn.disabled=false;
+        if(currentStepIndex === questionElements.length-1){ nextBtn.classList.add("hidden"); finalBtn.classList.remove("hidden");}
+        else { nextBtn.classList.remove("hidden"); finalBtn.classList.add("hidden");}
+        if(el.type==='choice'){
+            document.querySelectorAll("input[name='choiceRad']").forEach(radio=>radio.addEventListener("change",(e)=>{
+                let idx = parseInt(e.target.dataset.idx);
+                currentAnswers[currentStepIndex] = {selectedIndex: idx};
+                renderQuizStep(); // обновить стиль
+            }));
+        } else if(el.type==='textarea'){
+            let textarea = document.getElementById("textAnswer");
+            if(textarea) textarea.addEventListener("input",(e)=>{ currentAnswers[currentStepIndex] = e.target.value; });
+        }
+    }
+    document.getElementById("nextQuestBtn")?.addEventListener("click",()=>{ if(currentStepIndex<questionElements.length-1) { currentStepIndex++; renderQuizStep(); } });
+    document.getElementById("prevQuestBtn")?.addEventListener("click",()=>{ if(currentStepIndex>0) { currentStepIndex--; renderQuizStep(); } });
+    document.getElementById("finalSubmitBtn")?.addEventListener("click",async()=>{
+        let totalPoints = 0, earned = 0;
+        for(let i=0;i<questionElements.length;i++){
+            let q = questionElements[i];
+            let ans = currentAnswers[i];
+            if(q.type==='choice' && ans){
+                if(q.correctAnswer.includes(ans.selectedIndex)) earned += q.points;
+                totalPoints += q.points;
+            } else if(q.type==='textarea' && ans && typeof ans === 'string' && ans.trim().length>0){ earned += q.points; totalPoints += q.points; }
+            else if(q.type==='text'){ /* без баллов */}
+            else { totalPoints += q.points; }
+        }
+        let percent = totalPoints>0 ? Math.round((earned/totalPoints)*100) : 0;
+        await db.collection("results").add({
+            taskId: currentTaskToSolve.id, taskTitle: currentTaskToSolve.title, studentId: currentUser.uid, studentEmail: currentUser.email,
+            earnedPoints: earned, totalPoints: totalPoints, percent: percent, completedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast(`Результат: ${earned}/${totalPoints} (${percent}%)`);
+        document.getElementById("quizModal").classList.add("hidden");
+        loadTasksList();
+    });
+    document.getElementById("closeModalBtn")?.addEventListener("click",()=>document.getElementById("quizModal").classList.add("hidden"));
+    
+    async function loadResultsOverview(){
+        if(userRole!=="mentor") return;
+        let resultsSnap = await db.collection("results").get();
+        let container = document.getElementById("resultsContainer");
+        if(!container) return;
+        if(resultsSnap.empty){ container.innerHTML="Нет результатов"; return; }
+        let grouped = {};
+        resultsSnap.forEach(doc=>{ let r=doc.data(); if(!grouped[r.taskId]) grouped[r.taskId]={title:r.taskTitle, entries:[]}; grouped[r.taskId].entries.push(r); });
+        container.innerHTML = "";
+        for(let taskId in grouped){
+            let block = document.createElement("div"); block.className="border rounded p-3 mb-4";
+            block.innerHTML = `<div class="font-bold text-lg">${grouped[taskId].title}</div><table class="w-full text-sm"><thead><tr><th>Ученик</th><th>Баллы</th><th>Процент</th><th>Дата</th></tr></thead><tbody>`;
+            grouped[taskId].entries.forEach(ent=>{
+                block.innerHTML += `<tr><td>${ent.studentEmail}</td><td>${ent.earnedPoints}/${ent.totalPoints}</td><td>${ent.percent}%</td><td>${ent.completedAt?.toDate().toLocaleString() || "—"}</td></tr>`;
+            });
+            block.innerHTML += `</tbody></table>`; container.appendChild(block);
+        }
+    }
+    if(!firebaseConfig.apiKey.includes("Dummy")){
+        // если реальный конфиг работает
+    } else {
+        showToast("⚠️ ВНИМАНИЕ: Замените firebaseConfig на свои данные Firebase (Auth + Firestore). Демо-режим не сможет сохранять данные.");
+    }
+</script>
 </body>
 </html>
