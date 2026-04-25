@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Олимпиадская застава</title>
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -39,7 +40,6 @@
         .page-indicator.partial { background: #eab308; color: white; }
         .page-indicator.active { transform: scale(1.1); box-shadow: 0 0 0 3px #4f46e5; }
         .page-indicator.unanswered { background: #e2e8f0; color: #64748b; }
-        .fullscreen-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; overflow-y: auto; }
         .task-element-card { background: #f9fafb; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
     </style>
 </head>
@@ -282,21 +282,16 @@
         renderFullscreenTask(true);
     }
     
-    function getElementStatus(pageIdx, elemIdx, pageAnswers) {
-        let pageAns = pageAnswers[pageIdx] || {};
-        let elAns = pageAns[elemIdx];
-        if(!elAns) return 'unanswered';
-        if(elAns.type === 'choice') return elAns.selected !== undefined ? 'answered' : 'unanswered';
-        if(elAns.type === 'textarea') return elAns.value && elAns.value.trim().length > 0 ? 'answered' : 'unanswered';
-        return 'viewed';
-    }
-    
     function getPageOverallStatus(pageIdx, pageAnswers) {
         let elements = currentPages[pageIdx] || [];
         let allAnswered = true;
         for(let i=0; i<elements.length; i++) {
-            let status = getElementStatus(pageIdx, i, pageAnswers);
-            if(status === 'unanswered') allAnswered = false;
+            let el = elements[i];
+            if(el.type === 'text') continue;
+            let pageAns = pageAnswers[pageIdx] || {};
+            let ans = pageAns[i];
+            if(el.type === 'choice' && (!ans || ans.selected === undefined)) allAnswered = false;
+            if(el.type === 'textarea' && (!ans || !ans.value || ans.value.trim() === "")) allAnswered = false;
         }
         return allAnswered ? 'correct' : 'partial';
     }
@@ -479,8 +474,8 @@
             pageDiv.className = "border-2 border-indigo-200 rounded-xl p-4 bg-white";
             pageDiv.innerHTML = `<div class="flex justify-between items-center mb-3"><span class="font-bold text-indigo-700">Страница ${pageIdx+1}</span><button class="delete-page text-red-500 text-sm">Удалить страницу</button></div>
             <div class="space-y-3 mb-3" id="page-${pageIdx}-elements"></div>
-            <div class="flex gap-2 mt-2"><button class="add-elem-btn text-indigo-600 text-sm" data-type="text"><i class="fas fa-paragraph mr-1"></i> Текст</button>
-            <button class="add-elem-btn text-indigo-600 text-sm" data-type="choice"><i class="fas fa-check-circle mr-1"></i> Выбор</button>
+            <div class="flex gap-2 mt-2 flex-wrap"><button class="add-elem-btn text-indigo-600 text-sm" data-type="text"><i class="fas fa-paragraph mr-1"></i> Текст</button>
+            <button class="add-elem-btn text-indigo-600 text-sm" data-type="choice"><i class="fas fa-check-circle mr-1"></i> Выбор ответа</button>
             <button class="add-elem-btn text-indigo-600 text-sm" data-type="textarea"><i class="fas fa-edit mr-1"></i> Свободный ответ</button></div>`;
             container.appendChild(pageDiv);
             
@@ -489,10 +484,10 @@
                 elementsContainer.innerHTML = "";
                 pagesStore[pageIdx].forEach((el, elemIdx) => {
                     let elemCard = document.createElement("div");
-                    elemCard.className = "bg-gray-50 rounded-lg p-3 border";
+                    elemCard.className = "bg-gray-50 rounded-lg p-3 border mb-2";
                     let typeName = el.type === 'text' ? '📄 Текст' : (el.type === 'choice' ? '✓ Выбор ответа' : '✏️ Свободный ответ');
                     elemCard.innerHTML = `<div class="flex justify-between items-center mb-2"><span class="font-medium">${typeName}</span><button class="delete-elem text-red-500 text-xs">✖</button></div>
-                    <div class="mb-2"><input class="elem-points w-24 border rounded p-1 text-sm" type="number" value="${el.points || 1}" min="0" placeholder="Баллы"></div>`;
+                    <div class="mb-2"><label class="text-xs text-gray-500">Баллы</label><input class="elem-points w-24 border rounded p-1 text-sm ml-2" type="number" value="${el.points || (el.type === 'text' ? 0 : 1)}" min="0"></div>`;
                     if(el.type === 'text') elemCard.innerHTML += `<textarea class="elem-content w-full border rounded p-2 text-sm" rows="2" placeholder="Текст...">${escapeHtml(el.content||'')}</textarea>`;
                     else if(el.type === 'choice') {
                         elemCard.innerHTML += `<input class="elem-content w-full border rounded p-2 text-sm mb-2" value="${escapeHtml(el.content||'')}" placeholder="Вопрос">
@@ -531,10 +526,11 @@
         
         if(el.type === 'choice') {
             if(!el.options) el.options = ["Вариант 1"];
-            if(!el.correctIndex) el.correctIndex = 0;
+            if(el.correctIndex === undefined) el.correctIndex = 0;
             function renderOptions() {
                 let optsContainer = card.querySelector('.options-list');
                 let correctSelect = card.querySelector('.elem-correct');
+                if(!optsContainer || !correctSelect) return;
                 optsContainer.innerHTML = '';
                 correctSelect.innerHTML = '';
                 el.options.forEach((opt, optIdx) => {
@@ -562,16 +558,19 @@
         
         let addPhotoBtn = card.querySelector('.add-photo');
         let fileInput = card.querySelector('.photo-file');
-        addPhotoBtn.onclick = () => fileInput.click();
-        fileInput.onchange = (ev) => {
-            let file = ev.target.files[0];
-            if(file) { let reader = new FileReader(); reader.onload = (re) => { pagesStore[pageIdx][elemIdx].imageBase64 = re.target.result; renderConstructorUI(); }; reader.readAsDataURL(file); }
-        };
+        if(addPhotoBtn && fileInput) {
+            addPhotoBtn.onclick = () => fileInput.click();
+            fileInput.onchange = (ev) => {
+                let file = ev.target.files[0];
+                if(file) { let reader = new FileReader(); reader.onload = (re) => { pagesStore[pageIdx][elemIdx].imageBase64 = re.target.result; renderConstructorUI(); }; reader.readAsDataURL(file); }
+            };
+        }
         let removePhoto = card.querySelector('.remove-photo');
         if(removePhoto) removePhoto.onclick = () => { pagesStore[pageIdx][elemIdx].imageBase64 = null; renderConstructorUI(); };
         let previewImg = card.querySelector('.preview-img');
         if(previewImg) previewImg.onclick = () => window.showImagePopup(previewImg.src);
-        card.querySelector('.delete-elem').onclick = () => { pagesStore[pageIdx].splice(elemIdx,1); if(pagesStore[pageIdx].length===0) pagesStore.splice(pageIdx,1); renderConstructorUI(); };
+        let deleteElem = card.querySelector('.delete-elem');
+        if(deleteElem) deleteElem.onclick = () => { pagesStore[pageIdx].splice(elemIdx,1); if(pagesStore[pageIdx].length===0) pagesStore.splice(pageIdx,1); renderConstructorUI(); };
     }
     
     document.getElementById("addPageBtn")?.addEventListener("click", () => { pagesStore.push([]); renderConstructorUI(); });
@@ -581,30 +580,49 @@
         let targetClass = document.getElementById("taskClass").value.trim();
         if(!title || !targetClass) { showToast("Заполните название и класс", true); return; }
         if(pagesStore.length === 0) { showToast("Добавьте хотя бы одну страницу", true); return; }
+        
         let finalPages = [];
         for(let page of pagesStore) {
             let finalPage = [];
             for(let el of page) {
-                let finalEl = { type: el.type, points: Number(el.points) || (el.type === 'text' ? 0 : 1), imageBase64: el.imageBase64 || null };
+                let finalEl = { 
+                    type: el.type, 
+                    points: Number(el.points) || (el.type === 'text' ? 0 : 1), 
+                    imageBase64: el.imageBase64 || null 
+                };
                 if(el.type === 'text') finalEl.content = el.content || "";
-                else if(el.type === 'choice') finalEl.content = el.content || "", finalEl.options = el.options || [], finalEl.correctAnswer = [el.correctIndex || 0];
-                else finalEl.content = el.content || "";
+                else if(el.type === 'choice') {
+                    finalEl.content = el.content || "";
+                    finalEl.options = el.options || [];
+                    finalEl.correctAnswer = [el.correctIndex || 0];
+                } else {
+                    finalEl.content = el.content || "";
+                }
                 finalPage.push(finalEl);
             }
             finalPages.push(finalPage);
         }
-        await db.collection("tasks").add({
-            title, targetClass, pages: finalPages, published: true,
-            createdBy: currentUserObj.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showToast("Задание опубликовано!");
-        pagesStore = [];
-        renderConstructorUI();
-        document.getElementById("taskName").value = "";
-        document.getElementById("taskClass").value = "";
-        loadMyTasksForMentor();
-        loadTasks();
+        
+        try {
+            await db.collection("tasks").add({
+                title: title,
+                targetClass: targetClass,
+                pages: finalPages,
+                published: true,
+                createdBy: currentUserObj.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showToast("Задание успешно опубликовано!");
+            pagesStore = [];
+            renderConstructorUI();
+            document.getElementById("taskName").value = "";
+            document.getElementById("taskClass").value = "";
+            loadMyTasksForMentor();
+            loadTasks();
+        } catch(error) {
+            console.error("Ошибка публикации:", error);
+            showToast("Ошибка публикации: " + error.message, true);
+        }
     });
     
     async function loadMyTasksForMentor() {
@@ -616,7 +634,7 @@
             let taskData = doc.data();
             let resultsSnap = await db.collection("results").where("taskId", "==", doc.id).get();
             let resultsCount = resultsSnap.size;
-            cont.innerHTML += `<div class="border-b py-2 flex justify-between items-center"><div><span class="font-medium">${taskData.title}</span><span class="text-xs text-gray-400 ml-2">(${taskData.targetClass})</span><div class="text-xs text-indigo-500">${resultsCount} учеников прошли</div></div><button data-id="${doc.id}" class="delMine text-red-500 text-sm">Удалить</button></div>`;
+            cont.innerHTML += `<div class="border-b py-2 flex justify-between items-center"><div><span class="font-medium">${escapeHtml(taskData.title)}</span><span class="text-xs text-gray-400 ml-2">(${taskData.targetClass})</span><div class="text-xs text-indigo-500">${resultsCount} учеников прошли</div></div><button data-id="${doc.id}" class="delMine text-red-500 text-sm">Удалить</button></div>`;
         }
         document.querySelectorAll(".delMine").forEach(btn => btn.addEventListener("click", async (e) => {
             if(confirm("Удалить задание?")) {
@@ -628,7 +646,7 @@
         }));
     }
     
-    function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m=>({ '&':'&amp;', '<':'&lt;', '&gt;':'&gt;' }[m])); }
+    function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
 </script>
 </body>
 </html>
