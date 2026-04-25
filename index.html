@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Олимпиадская застава</title>
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -41,6 +40,7 @@
         .page-indicator.active { transform: scale(1.1); box-shadow: 0 0 0 3px #4f46e5; }
         .page-indicator.unanswered { background: #e2e8f0; color: #64748b; }
         .fullscreen-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; overflow-y: auto; }
+        .task-element-card { background: #f9fafb; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans pb-20">
@@ -80,7 +80,7 @@
     <div class="flex-1 p-4 pb-24 overflow-y-auto">
         <div id="tasksPanel" class="tab-content w-full"><div id="tasksListContainer" class="space-y-4"></div></div>
         
-        <!-- КОНСТРУКТОР -->
+        <!-- КОНСТРУКТОР: страницы, внутри каждой страницы несколько элементов -->
         <div id="constructorPanel" class="tab-content hidden w-full">
             <div class="bg-white rounded-2xl p-5 shadow-md mb-6">
                 <h2 class="text-xl font-bold mb-4">Новое задание</h2>
@@ -96,13 +96,9 @@
                 <div class="border-t pt-4">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-lg">Страницы задания</h3>
-                        <div class="flex gap-2">
-                            <button id="addTextBtn" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-medium transition"><i class="fas fa-paragraph mr-1"></i> Текст</button>
-                            <button id="addChoiceBtn" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-medium transition"><i class="fas fa-check-circle mr-1"></i> Выбор ответа</button>
-                            <button id="addTextareaBtn" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-medium transition"><i class="fas fa-edit mr-1"></i> Свободный ответ</button>
-                        </div>
+                        <button id="addPageBtn" class="bg-indigo-600 text-white px-3 py-1.5 rounded-full text-sm font-medium"><i class="fas fa-plus mr-1"></i> Добавить страницу</button>
                     </div>
-                    <div id="elementsContainer" class="space-y-4 max-h-96 overflow-auto mb-5"></div>
+                    <div id="pagesContainer" class="space-y-6 max-h-96 overflow-auto mb-5"></div>
                 </div>
                 
                 <button id="publishTaskBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl text-base transition shadow-md">Опубликовать задание</button>
@@ -140,13 +136,9 @@
         <div class="w-8"></div>
     </div>
     
-    <!-- Пагинация страницами -->
     <div id="fsPagesContainer" class="flex justify-center gap-2 py-3 px-2 flex-wrap border-b bg-gray-50"></div>
-    
-    <!-- Контент текущей страницы -->
     <div id="fsPageContent" class="flex-1 overflow-auto p-6"></div>
     
-    <!-- Нижняя навигация -->
     <div class="border-t p-4 flex justify-between items-center bg-white">
         <button id="fsPrevPage" class="bg-gray-200 px-5 py-2 rounded-xl disabled:opacity-40 font-medium"><i class="fas fa-arrow-left mr-2"></i>Назад</button>
         <span id="fsPageCounter" class="text-sm text-gray-500"></span>
@@ -156,15 +148,13 @@
 </div>
 
 <script>
-    // ========== FIREBASE ==========
     const config = { apiKey: "AIzaSyDT6xPjDxldqrmjWuG-VF7AVoot-RFUkH0", authDomain: "olymp-e7d79.firebaseapp.com", projectId: "olymp-e7d79", storageBucket: "olymp-e7d79.firebasestorage.app", messagingSenderId: "212523217131", appId: "1:212523217131:web:6acdbf9443cf4f22440eae" };
     firebase.initializeApp(config);
     const auth = firebase.auth(), db = firebase.firestore();
 
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
-    let currentTask = null, currentElements = [], currentPageAnswers = [], currentPage = 0;
-    let completedTasksIds = new Map(); // taskId -> результат {earned, total, percent}
-    let isViewMode = false; // для наставника или просмотра готового
+    let currentTask = null, currentPages = [], currentPageAnswers = [], currentPage = 0;
+    let completedTasksIds = new Map();
 
     function showToast(message, isError = false) {
         let existing = document.querySelector('.toast-notify');
@@ -261,7 +251,7 @@
             let isCompleted = !!completed;
             let card = document.createElement("div");
             card.className = `task-card bg-white rounded-xl shadow p-4 transition ${isCompleted ? 'completed' : ''}`;
-            card.innerHTML = `<div class="font-bold text-lg">${escapeHtml(t.title)}</div><div class="text-sm text-gray-500 mt-1">Класс: ${t.targetClass} • Страниц: ${t.elements?.length||0}</div>
+            card.innerHTML = `<div class="font-bold text-lg">${escapeHtml(t.title)}</div><div class="text-sm text-gray-500 mt-1">Класс: ${t.targetClass} • Страниц: ${t.pages?.length||0}</div>
             ${isCompleted ? `<div class="text-green-600 text-xs mt-1 font-semibold"><i class="fas fa-check-circle"></i> Пройдено: ${completed.earned}/${completed.total} (${completed.percent}%)</div>` : ''}
             <button data-id="${t.id}" class="task-start mt-3 bg-indigo-50 text-indigo-700 font-semibold py-1.5 px-3 rounded-xl w-full">${userRole==="student" ? (isCompleted ? "Посмотреть результат" : "Начать") : "Просмотреть"}</button>`;
             container.appendChild(card);
@@ -272,123 +262,120 @@
             if(snap.exists) {
                 currentTask = {id:snap.id, ...snap.data()};
                 if(userRole === "student" && !completedTasksIds.has(id)) openTaskForSolve();
-                else if(userRole === "student" && completedTasksIds.has(id)) openTaskForReview();
+                else if(userRole === "student" && completedTasksIds.has(id)) alert(`Ваш результат: ${completedTasksIds.get(id).earned}/${completedTasksIds.get(id).total} (${completedTasksIds.get(id).percent}%)`);
                 else if(userRole === "mentor") openTaskForMentor();
             }
         }));
     }
 
-    // ОТКРЫТИЕ ДЛЯ РЕШЕНИЯ
     async function openTaskForSolve() {
-        isViewMode = false;
-        currentElements = currentTask.elements.map((el, idx) => ({ ...el, pageIndex: idx }));
-        currentPageAnswers = currentElements.map(() => null);
+        currentPages = currentTask.pages || [];
+        currentPageAnswers = currentPages.map(() => ({}));
         currentPage = 0;
-        renderFullscreenTask();
+        renderFullscreenTask(false);
     }
     
-    // ОТКРЫТИЕ ДЛЯ ПРОСМОТРА РЕЗУЛЬТАТА (ученик)
-    async function openTaskForReview() {
-        isViewMode = true;
-        let result = completedTasksIds.get(currentTask.id);
-        if(result) {
-            alert(`Ваш результат: ${result.earned}/${result.total} (${result.percent}%)\nПодробности можно посмотреть у наставника.`);
-        } else {
-            alert("Результат не найден");
-        }
-    }
-    
-    // ДЛЯ НАСТАВНИКА: просмотр задания + список результатов учеников
     async function openTaskForMentor() {
-        isViewMode = true;
-        // Показываем окно с заданием и кнопкой просмотра результатов
-        currentElements = currentTask.elements.map((el, idx) => ({ ...el, pageIndex: idx }));
-        currentPageAnswers = currentElements.map(() => null);
+        currentPages = currentTask.pages || [];
+        currentPageAnswers = currentPages.map(() => ({}));
         currentPage = 0;
-        renderFullscreenTask(true); // mentor mode with results button
+        renderFullscreenTask(true);
     }
     
-    function getPageStatus(pageIdx, answers) {
-        let el = currentElements[pageIdx];
-        let ans = answers[pageIdx];
-        if(!ans) return 'unanswered';
-        if(el.type === 'choice') {
-            if(ans.selected !== undefined && el.correctAnswer && el.correctAnswer.includes(ans.selected)) return 'correct';
-            if(ans.selected !== undefined) return 'incorrect';
-            return 'unanswered';
-        }
-        if(el.type === 'textarea') {
-            if(ans && ans.trim().length > 0) return 'partial'; // условно
-            return 'unanswered';
-        }
+    function getElementStatus(pageIdx, elemIdx, pageAnswers) {
+        let pageAns = pageAnswers[pageIdx] || {};
+        let elAns = pageAns[elemIdx];
+        if(!elAns) return 'unanswered';
+        if(elAns.type === 'choice') return elAns.selected !== undefined ? 'answered' : 'unanswered';
+        if(elAns.type === 'textarea') return elAns.value && elAns.value.trim().length > 0 ? 'answered' : 'unanswered';
         return 'viewed';
     }
     
-    function renderFullscreenTask(isMentorMode = false) {
+    function getPageOverallStatus(pageIdx, pageAnswers) {
+        let elements = currentPages[pageIdx] || [];
+        let allAnswered = true;
+        for(let i=0; i<elements.length; i++) {
+            let status = getElementStatus(pageIdx, i, pageAnswers);
+            if(status === 'unanswered') allAnswered = false;
+        }
+        return allAnswered ? 'correct' : 'partial';
+    }
+    
+    function renderFullscreenTask(isMentorMode) {
         const modal = document.getElementById("taskFullscreen");
         document.getElementById("fsTaskTitle").innerText = currentTask.title;
         
-        // Рисуем пагинацию кружочками
         const pagesContainer = document.getElementById("fsPagesContainer");
         pagesContainer.innerHTML = "";
-        for(let i = 0; i < currentElements.length; i++) {
-            let status = getPageStatus(i, currentPageAnswers);
+        for(let i = 0; i < currentPages.length; i++) {
+            let status = getPageOverallStatus(i, currentPageAnswers);
             let div = document.createElement("div");
-            div.className = `page-indicator ${status} ${i === currentPage ? 'active' : ''}`;
+            div.className = `page-indicator ${status === 'correct' ? 'correct' : (status === 'partial' ? 'partial' : 'unanswered')} ${i === currentPage ? 'active' : ''}`;
             div.innerText = (i+1).toString();
             div.onclick = () => { currentPage = i; renderFullscreenTask(isMentorMode); };
             pagesContainer.appendChild(div);
         }
         
-        // Рендер текущей страницы
         const content = document.getElementById("fsPageContent");
-        let el = currentElements[currentPage];
-        let ans = currentPageAnswers[currentPage];
-        let html = `<div class="mb-4"><h3 class="text-lg font-bold">Страница ${currentPage+1}</h3></div>`;
-        if(el.imageBase64) html += `<img src="${el.imageBase64}" class="modal-photo my-3 max-h-48 rounded cursor-pointer" onclick="window.showImagePopup('${el.imageBase64}')">`;
+        let pageElements = currentPages[currentPage] || [];
+        let html = `<div class="mb-4"><h3 class="text-lg font-bold">Страница ${currentPage+1}</h3><p class="text-sm text-gray-500">${pageElements.length} заданий</p></div>`;
         
-        if(el.type === 'text') {
-            html += `<div class="bg-gray-100 p-5 rounded-xl text-gray-700">${escapeHtml(el.content) || "Информационный блок"}</div>`;
-            if(!isViewMode && !ans) currentPageAnswers[currentPage] = "viewed";
-        }
-        else if(el.type === 'choice') {
-            html += `<div class="font-semibold text-lg mb-3">${escapeHtml(el.content)}</div><div class="space-y-2">`;
-            el.options.forEach((opt, idx) => {
-                let selected = (ans && ans.selected === idx);
-                let disabledAttr = isViewMode ? 'disabled' : '';
-                html += `<div class="quiz-option p-3 rounded-xl flex items-center gap-3 ${selected ? 'selected' : ''}" data-opt="${idx}" style="${isViewMode ? 'cursor:default' : 'cursor:pointer'}">
-                    <div class="w-5 h-5 rounded-full border ${selected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}"></div>
-                    <span>${escapeHtml(opt)}</span>
-                </div>`;
-            });
-            html += `</div><div class="text-xs text-gray-400 mt-3">Баллов: ${el.points}</div>`;
-        }
-        else if(el.type === 'textarea') {
-            html += `<div class="font-semibold">${escapeHtml(el.content)}</div>`;
-            let disabledAttr = isViewMode ? 'readonly disabled' : '';
-            html += `<textarea id="textareaAns" class="w-full border rounded-xl p-3 mt-3" rows="4" placeholder="Напишите ваш ответ..." ${disabledAttr}>${ans || ''}</textarea>`;
-            html += `<div class="text-xs text-gray-400 mt-2">Баллов: ${el.points}</div>`;
+        for(let i=0; i<pageElements.length; i++) {
+            let el = pageElements[i];
+            let ans = (currentPageAnswers[currentPage] || {})[i];
+            html += `<div class="task-element-card"><div class="font-semibold mb-2">Задание ${i+1} <span class="text-xs text-gray-400">(${el.type === 'text' ? 'Инфо' : (el.type === 'choice' ? 'Выбор' : 'Текст')}, баллов: ${el.points})</span></div>`;
+            if(el.imageBase64) html += `<img src="${el.imageBase64}" class="modal-photo my-2 max-h-32 rounded cursor-pointer" onclick="window.showImagePopup('${el.imageBase64}')">`;
+            
+            if(el.type === 'text') {
+                html += `<div class="bg-gray-100 p-4 rounded-xl">${escapeHtml(el.content) || "Информация"}</div>`;
+                if(!isMentorMode && !ans) { 
+                    if(!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {};
+                    currentPageAnswers[currentPage][i] = { type: 'text', viewed: true };
+                }
+            }
+            else if(el.type === 'choice') {
+                html += `<div class="font-medium mb-2">${escapeHtml(el.content)}</div><div class="space-y-2">`;
+                el.options.forEach((opt, idx) => {
+                    let selected = (ans && ans.selected === idx);
+                    let disabledAttr = isMentorMode ? 'style="cursor:default; opacity:0.7"' : '';
+                    html += `<div class="quiz-option p-3 rounded-xl flex items-center gap-3 ${selected ? 'selected' : ''}" data-opt="${idx}" ${disabledAttr}>
+                        <div class="w-5 h-5 rounded-full border ${selected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}"></div>
+                        <span>${escapeHtml(opt)}</span>
+                    </div>`;
+                });
+                html += `</div><div class="text-xs text-gray-400 mt-2">Баллов: ${el.points}</div>`;
+            }
+            else if(el.type === 'textarea') {
+                html += `<div class="font-medium mb-2">${escapeHtml(el.content)}</div>`;
+                let val = ans ? ans.value : '';
+                let disabledAttr = isMentorMode ? 'readonly disabled' : '';
+                html += `<textarea class="textarea-ans w-full border rounded-xl p-3 mt-2" rows="3" placeholder="Напишите ответ..." data-elem-idx="${i}" ${disabledAttr}>${escapeHtml(val)}</textarea>`;
+                html += `<div class="text-xs text-gray-400 mt-1">Баллов: ${el.points}</div>`;
+            }
+            html += `</div>`;
         }
         
         content.innerHTML = html;
         
-        // Обработчики для выбора ответов (только если не режим просмотра)
-        if(!isViewMode) {
-            if(el.type === 'choice') {
-                document.querySelectorAll(".quiz-option").forEach(opt => {
-                    opt.addEventListener("click", () => {
-                        let idx = parseInt(opt.dataset.opt);
-                        currentPageAnswers[currentPage] = { selected: idx };
-                        renderFullscreenTask(false);
-                    });
+        if(!isMentorMode) {
+            document.querySelectorAll(".quiz-option").forEach(opt => {
+                opt.addEventListener("click", () => {
+                    let idx = parseInt(opt.dataset.opt);
+                    let elemIdx = Array.from(opt.closest('.task-element-card').parentNode.children).indexOf(opt.closest('.task-element-card'));
+                    if(!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {};
+                    currentPageAnswers[currentPage][elemIdx] = { type: 'choice', selected: idx };
+                    renderFullscreenTask(false);
                 });
-            } else if(el.type === 'textarea') {
-                let ta = document.getElementById("textareaAns");
-                if(ta) ta.addEventListener("input", (e) => { currentPageAnswers[currentPage] = e.target.value; });
-            }
+            });
+            document.querySelectorAll(".textarea-ans").forEach(ta => {
+                ta.addEventListener("input", (e) => {
+                    let elemIdx = parseInt(ta.dataset.elemIdx);
+                    if(!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {};
+                    currentPageAnswers[currentPage][elemIdx] = { type: 'textarea', value: e.target.value };
+                });
+            });
         }
         
-        // Кнопки навигации
         const prevBtn = document.getElementById("fsPrevPage");
         const nextBtn = document.getElementById("fsNextPage");
         const finishBtn = document.getElementById("fsFinishBtn");
@@ -396,76 +383,55 @@
         prevBtn.disabled = (currentPage === 0);
         prevBtn.onclick = () => { if(currentPage > 0) { currentPage--; renderFullscreenTask(isMentorMode); } };
         
-        if(currentPage === currentElements.length - 1) {
+        if(currentPage === currentPages.length - 1) {
             nextBtn.classList.add("hidden");
             finishBtn.classList.remove("hidden");
-            finishBtn.onclick = () => {
-                if(!isViewMode) checkAndFinishTask();
-                else modal.classList.add("hidden");
-            };
+            if(!isMentorMode) finishBtn.onclick = () => checkAndFinishTask();
+            else finishBtn.onclick = () => modal.classList.add("hidden");
         } else {
             nextBtn.classList.remove("hidden");
             finishBtn.classList.add("hidden");
-            nextBtn.onclick = () => { if(currentPage < currentElements.length - 1) { currentPage++; renderFullscreenTask(isMentorMode); } };
+            nextBtn.onclick = () => { if(currentPage < currentPages.length - 1) { currentPage++; renderFullscreenTask(isMentorMode); } };
         }
         
-        document.getElementById("fsPageCounter").innerHTML = `${currentPage+1} / ${currentElements.length}`;
-        
-        // Кнопка закрытия
+        document.getElementById("fsPageCounter").innerHTML = `${currentPage+1} / ${currentPages.length}`;
         document.getElementById("closeTaskBtn").onclick = () => modal.classList.add("hidden");
-        
-        // Для наставника добавляем кнопку просмотра результатов
-        if(isMentorMode && userRole === "mentor") {
-            let resultsBtn = document.createElement("button");
-            resultsBtn.className = "fixed bottom-24 right-4 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg z-20";
-            resultsBtn.innerHTML = '<i class="fas fa-chart-line mr-1"></i> Результаты';
-            resultsBtn.onclick = () => showTaskResultsForMentor();
-            if(!document.getElementById("mentorResultsBtn")) {
-                resultsBtn.id = "mentorResultsBtn";
-                document.body.appendChild(resultsBtn);
-            }
-        } else {
-            let oldBtn = document.getElementById("mentorResultsBtn");
-            if(oldBtn) oldBtn.remove();
-        }
         
         modal.classList.remove("hidden");
     }
     
     async function checkAndFinishTask() {
-        // Проверяем незавершённые страницы
         let unanswered = [];
-        for(let i=0; i<currentPageAnswers.length; i++) {
-            let ans = currentPageAnswers[i];
-            let el = currentElements[i];
-            if(el.type === 'choice' && (!ans || ans.selected === undefined)) unanswered.push(i+1);
-            if(el.type === 'textarea' && (!ans || ans.trim() === "")) unanswered.push(i+1);
+        for(let p=0; p<currentPages.length; p++) {
+            let page = currentPages[p];
+            let pageAns = currentPageAnswers[p] || {};
+            for(let i=0; i<page.length; i++) {
+                let el = page[i];
+                if(el.type === 'text') continue;
+                let ans = pageAns[i];
+                if(el.type === 'choice' && (!ans || ans.selected === undefined)) unanswered.push(`Стр.${p+1}, зад.${i+1}`);
+                if(el.type === 'textarea' && (!ans || !ans.value || ans.value.trim() === "")) unanswered.push(`Стр.${p+1}, зад.${i+1}`);
+            }
         }
         if(unanswered.length > 0) {
-            let confirmFinish = confirm(`Есть незаконченные задания на страницах: ${unanswered.join(", ")}\n\nВсё равно завершить?`);
-            if(!confirmFinish) return;
+            if(!confirm(`Есть незаполненные задания:\n${unanswered.join("\n")}\n\nВсё равно завершить?`)) return;
         }
         
-        // Подсчёт результата
         let totalPoints = 0, earnedPoints = 0;
-        for(let i=0; i<currentElements.length; i++) {
-            let el = currentElements[i];
-            let ans = currentPageAnswers[i];
-            if(el.type === 'choice') {
+        for(let p=0; p<currentPages.length; p++) {
+            let page = currentPages[p];
+            let pageAns = currentPageAnswers[p] || {};
+            for(let i=0; i<page.length; i++) {
+                let el = page[i];
+                if(el.type === 'text') continue;
                 totalPoints += el.points;
-                if(ans && ans.selected !== undefined && el.correctAnswer && el.correctAnswer.includes(ans.selected)) earnedPoints += el.points;
-            } else if(el.type === 'textarea') {
-                totalPoints += el.points;
-                if(ans && ans.trim().length > 0) earnedPoints += el.points;
-            } else if(el.type === 'text') {
-                // без баллов
-            } else {
-                totalPoints += el.points;
+                let ans = pageAns[i];
+                if(el.type === 'choice' && ans && ans.selected !== undefined && el.correctAnswer && el.correctAnswer.includes(ans.selected)) earnedPoints += el.points;
+                else if(el.type === 'textarea' && ans && ans.value && ans.value.trim().length > 0) earnedPoints += el.points;
             }
         }
         let percent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
         
-        // Показываем страницу с результатами
         const content = document.getElementById("fsPageContent");
         content.innerHTML = `
             <div class="text-center py-10">
@@ -493,21 +459,6 @@
         document.getElementById("fsFinishBtn").disabled = true;
     }
     
-    async function showTaskResultsForMentor() {
-        let snap = await db.collection("results").where("taskId","==",currentTask.id).get();
-        let results = [];
-        snap.forEach(doc => results.push(doc.data()));
-        if(results.length === 0) {
-            alert("Нет результатов по этому заданию");
-            return;
-        }
-        let msg = "📊 Результаты учеников:\n\n";
-        results.forEach(r => {
-            msg += `${r.studentEmail || r.studentId}: ${r.earnedPoints}/${r.totalPoints} (${r.percent}%)\n`;
-        });
-        alert(msg);
-    }
-    
     window.showImagePopup = (src) => {
         let popup = document.createElement('div');
         popup.className = 'image-popup animate-fade';
@@ -516,108 +467,168 @@
         document.body.appendChild(popup);
     };
     
-    // ========== КОНСТРУКТОР ==========
-    let elementsStore = [];
+    // ========== КОНСТРУКТОР СТРАНИЦ И ЭЛЕМЕНТОВ ==========
+    let pagesStore = []; // массив страниц, каждая страница — массив элементов
+    
     function renderConstructorUI() {
-        let container = document.getElementById("elementsContainer");
+        let container = document.getElementById("pagesContainer");
         if(!container) return;
         container.innerHTML = "";
-        elementsStore.forEach((el, idx) => {
-            let card = document.createElement("div");
-            card.className = "border border-gray-200 rounded-xl p-4 bg-gray-50 mb-3";
-            let typeName = el.type === 'text' ? '📄 Текст' : (el.type === 'choice' ? '✓ Выбор ответа' : '✏️ Свободный ответ');
-            card.innerHTML = `<div class="flex justify-between items-center mb-3"><span class="font-bold">${typeName}</span><button class="delete-elem text-red-500 text-sm">Удалить</button></div>
-            <div class="mb-2"><label class="block text-xs text-gray-500 mb-1">Баллы</label><input type="number" class="elem-points w-24 border rounded-lg p-2 text-sm" value="${el.points || 1}" min="0"></div>`;
-            if(el.type === 'text') card.innerHTML += `<textarea class="elem-content w-full border rounded-xl p-3 text-sm" rows="3" placeholder="Текст...">${escapeHtml(el.content||'')}</textarea>`;
-            else if(el.type === 'choice') {
-                card.innerHTML += `<input class="elem-content w-full border rounded-xl p-3 text-sm mb-2" value="${escapeHtml(el.content||'')}" placeholder="Вопрос">
-                <div class="options-list space-y-2"></div><button class="add-option-btn text-indigo-600 text-sm mt-2">+ Добавить вариант</button>
-                <div class="mt-2"><label class="text-xs text-gray-500">Правильный ответ (номер)</label><select class="elem-correct-select w-full border rounded-lg p-2 text-sm mt-1"></select></div>`;
-            } else {
-                card.innerHTML += `<textarea class="elem-content w-full border rounded-xl p-3 text-sm" rows="2" placeholder="Вопрос...">${escapeHtml(el.content||'')}</textarea>`;
+        pagesStore.forEach((page, pageIdx) => {
+            let pageDiv = document.createElement("div");
+            pageDiv.className = "border-2 border-indigo-200 rounded-xl p-4 bg-white";
+            pageDiv.innerHTML = `<div class="flex justify-between items-center mb-3"><span class="font-bold text-indigo-700">Страница ${pageIdx+1}</span><button class="delete-page text-red-500 text-sm">Удалить страницу</button></div>
+            <div class="space-y-3 mb-3" id="page-${pageIdx}-elements"></div>
+            <div class="flex gap-2 mt-2"><button class="add-elem-btn text-indigo-600 text-sm" data-type="text"><i class="fas fa-paragraph mr-1"></i> Текст</button>
+            <button class="add-elem-btn text-indigo-600 text-sm" data-type="choice"><i class="fas fa-check-circle mr-1"></i> Выбор</button>
+            <button class="add-elem-btn text-indigo-600 text-sm" data-type="textarea"><i class="fas fa-edit mr-1"></i> Свободный ответ</button></div>`;
+            container.appendChild(pageDiv);
+            
+            let elementsContainer = pageDiv.querySelector(`#page-${pageIdx}-elements`);
+            function renderElements() {
+                elementsContainer.innerHTML = "";
+                pagesStore[pageIdx].forEach((el, elemIdx) => {
+                    let elemCard = document.createElement("div");
+                    elemCard.className = "bg-gray-50 rounded-lg p-3 border";
+                    let typeName = el.type === 'text' ? '📄 Текст' : (el.type === 'choice' ? '✓ Выбор ответа' : '✏️ Свободный ответ');
+                    elemCard.innerHTML = `<div class="flex justify-between items-center mb-2"><span class="font-medium">${typeName}</span><button class="delete-elem text-red-500 text-xs">✖</button></div>
+                    <div class="mb-2"><input class="elem-points w-24 border rounded p-1 text-sm" type="number" value="${el.points || 1}" min="0" placeholder="Баллы"></div>`;
+                    if(el.type === 'text') elemCard.innerHTML += `<textarea class="elem-content w-full border rounded p-2 text-sm" rows="2" placeholder="Текст...">${escapeHtml(el.content||'')}</textarea>`;
+                    else if(el.type === 'choice') {
+                        elemCard.innerHTML += `<input class="elem-content w-full border rounded p-2 text-sm mb-2" value="${escapeHtml(el.content||'')}" placeholder="Вопрос">
+                        <div class="options-list space-y-1 mb-2"></div><button class="add-option text-indigo-600 text-xs">+ Добавить вариант</button>
+                        <div class="mt-2"><label class="text-xs">Правильный ответ (номер)</label><select class="elem-correct w-full border rounded p-1 text-sm mt-1"></select></div>`;
+                    } else {
+                        elemCard.innerHTML += `<textarea class="elem-content w-full border rounded p-2 text-sm" rows="2" placeholder="Вопрос...">${escapeHtml(el.content||'')}</textarea>`;
+                    }
+                    if(el.imageBase64) elemCard.innerHTML += `<div class="mt-2"><img src="${el.imageBase64}" class="h-12 rounded cursor-pointer preview-img"><button class="remove-photo text-red-500 text-xs ml-2">Удалить фото</button></div>`;
+                    elemCard.innerHTML += `<button class="add-photo text-indigo-600 text-xs mt-1">+ Добавить фото</button><input type="file" accept="image/*" class="photo-file hidden">`;
+                    elementsContainer.appendChild(elemCard);
+                    
+                    attachElemHandlers(elemCard, pageIdx, elemIdx, el);
+                });
             }
-            if(el.imageBase64) card.innerHTML += `<div class="mt-2"><img src="${el.imageBase64}" class="h-12 rounded cursor-pointer preview-img"><button class="remove-photo text-red-500 text-xs ml-2">Удалить фото</button></div>`;
-            card.innerHTML += `<button class="add-photo-btn text-indigo-600 text-sm mt-2"><i class="fas fa-camera mr-1"></i> Добавить фото</button><input type="file" accept="image/*" class="photo-file hidden">`;
-            container.appendChild(card);
-            attachConstructorHandlers(card, idx, el);
+            renderElements();
+            
+            pageDiv.querySelector(".delete-page").onclick = () => { pagesStore.splice(pageIdx,1); renderConstructorUI(); };
+            pageDiv.querySelectorAll(".add-elem-btn").forEach(btn => {
+                btn.onclick = () => {
+                    let type = btn.dataset.type;
+                    let newElem = { type: type, content: "", points: type === 'text' ? 0 : 1, imageBase64: null };
+                    if(type === 'choice') newElem.options = ["Вариант 1"], newElem.correctIndex = 0;
+                    pagesStore[pageIdx].push(newElem);
+                    renderConstructorUI();
+                };
+            });
         });
     }
-    function attachConstructorHandlers(card, idx, el) {
-        card.querySelector('.delete-elem').onclick = () => { elementsStore.splice(idx,1); renderConstructorUI(); };
+    
+    function attachElemHandlers(card, pageIdx, elemIdx, el) {
         let contentInput = card.querySelector('.elem-content');
         let pointsInput = card.querySelector('.elem-points');
-        if(contentInput) contentInput.addEventListener('input', (e) => { elementsStore[idx].content = e.target.value; });
-        if(pointsInput) pointsInput.addEventListener('input', (e) => { elementsStore[idx].points = parseInt(e.target.value) || 0; });
+        if(contentInput) contentInput.addEventListener('input', (e) => { pagesStore[pageIdx][elemIdx].content = e.target.value; });
+        if(pointsInput) pointsInput.addEventListener('input', (e) => { pagesStore[pageIdx][elemIdx].points = parseInt(e.target.value) || 0; });
+        
         if(el.type === 'choice') {
-            if(!el.options) el.options = ['Вариант 1'];
+            if(!el.options) el.options = ["Вариант 1"];
             if(!el.correctIndex) el.correctIndex = 0;
             function renderOptions() {
                 let optsContainer = card.querySelector('.options-list');
-                let correctSelect = card.querySelector('.elem-correct-select');
+                let correctSelect = card.querySelector('.elem-correct');
                 optsContainer.innerHTML = '';
                 correctSelect.innerHTML = '';
                 el.options.forEach((opt, optIdx) => {
                     let optDiv = document.createElement('div');
-                    optDiv.className = 'flex gap-2 mb-2';
-                    optDiv.innerHTML = `<input type="text" class="flex-1 border rounded-lg p-2 text-sm" value="${escapeHtml(opt)}"><button class="remove-opt text-red-400 text-sm">✖</button>`;
+                    optDiv.className = 'flex gap-2 mb-1';
+                    optDiv.innerHTML = `<input type="text" class="flex-1 border rounded p-1 text-sm" value="${escapeHtml(opt)}"><button class="remove-opt text-red-400 text-xs">✖</button>`;
                     optsContainer.appendChild(optDiv);
                     optDiv.querySelector('input').addEventListener('input', (e) => { el.options[optIdx] = e.target.value; renderOptions(); });
-                    optDiv.querySelector('.remove-opt').onclick = () => { el.options.splice(optIdx,1); if(el.correctIndex >= el.options.length) el.correctIndex = 0; renderOptions(); };
+                    optDiv.querySelector('.remove-opt').onclick = () => { el.options.splice(optIdx,1); if(el.correctIndex >= el.options.length) el.correctIndex=0; renderOptions(); };
                     let option = document.createElement('option');
                     option.value = optIdx;
-                    option.textContent = `${optIdx+1}. ${opt.substring(0,40)}`;
+                    option.textContent = `${optIdx+1}. ${opt.substring(0,30)}`;
                     if(el.correctIndex === optIdx) option.selected = true;
                     correctSelect.appendChild(option);
                 });
                 let addBtn = document.createElement('button');
-                addBtn.className = 'text-indigo-600 text-sm mt-1';
+                addBtn.className = 'text-indigo-600 text-xs mt-1';
                 addBtn.innerHTML = '+ Добавить вариант';
-                addBtn.onclick = () => { el.options.push(`Новый вариант ${el.options.length+1}`); renderOptions(); };
+                addBtn.onclick = () => { el.options.push(`Вариант ${el.options.length+1}`); renderOptions(); };
                 optsContainer.appendChild(addBtn);
                 correctSelect.onchange = (e) => { el.correctIndex = parseInt(e.target.value); };
             }
             renderOptions();
         }
-        let addPhotoBtn = card.querySelector('.add-photo-btn');
+        
+        let addPhotoBtn = card.querySelector('.add-photo');
         let fileInput = card.querySelector('.photo-file');
         addPhotoBtn.onclick = () => fileInput.click();
         fileInput.onchange = (ev) => {
             let file = ev.target.files[0];
-            if(file) { let reader = new FileReader(); reader.onload = (re) => { elementsStore[idx].imageBase64 = re.target.result; renderConstructorUI(); }; reader.readAsDataURL(file); }
+            if(file) { let reader = new FileReader(); reader.onload = (re) => { pagesStore[pageIdx][elemIdx].imageBase64 = re.target.result; renderConstructorUI(); }; reader.readAsDataURL(file); }
         };
         let removePhoto = card.querySelector('.remove-photo');
-        if(removePhoto) removePhoto.onclick = () => { elementsStore[idx].imageBase64 = null; renderConstructorUI(); };
+        if(removePhoto) removePhoto.onclick = () => { pagesStore[pageIdx][elemIdx].imageBase64 = null; renderConstructorUI(); };
         let previewImg = card.querySelector('.preview-img');
         if(previewImg) previewImg.onclick = () => window.showImagePopup(previewImg.src);
+        card.querySelector('.delete-elem').onclick = () => { pagesStore[pageIdx].splice(elemIdx,1); if(pagesStore[pageIdx].length===0) pagesStore.splice(pageIdx,1); renderConstructorUI(); };
     }
-    document.getElementById("addTextBtn")?.addEventListener("click", () => { elementsStore.push({ type:"text", content:"", points:0, imageBase64:null }); renderConstructorUI(); });
-    document.getElementById("addChoiceBtn")?.addEventListener("click", () => { elementsStore.push({ type:"choice", content:"", options:["Вариант 1"], correctIndex:0, points:1, imageBase64:null }); renderConstructorUI(); });
-    document.getElementById("addTextareaBtn")?.addEventListener("click", () => { elementsStore.push({ type:"textarea", content:"", points:1, imageBase64:null }); renderConstructorUI(); });
+    
+    document.getElementById("addPageBtn")?.addEventListener("click", () => { pagesStore.push([]); renderConstructorUI(); });
+    
     document.getElementById("publishTaskBtn")?.addEventListener("click", async () => {
         let title = document.getElementById("taskName").value.trim();
         let targetClass = document.getElementById("taskClass").value.trim();
         if(!title || !targetClass) { showToast("Заполните название и класс", true); return; }
-        let finalElems = [];
-        for(let el of elementsStore) {
-            if(el.type === 'choice') finalElems.push({ type:"choice", content:el.content||"", options:el.options||[], correctAnswer:[el.correctIndex], points:Number(el.points)||1, imageBase64:el.imageBase64||null });
-            else if(el.type === 'textarea') finalElems.push({ type:"textarea", content:el.content||"", points:Number(el.points)||1, imageBase64:el.imageBase64||null });
-            else finalElems.push({ type:"text", content:el.content||"", points:Number(el.points)||0, imageBase64:el.imageBase64||null });
+        if(pagesStore.length === 0) { showToast("Добавьте хотя бы одну страницу", true); return; }
+        let finalPages = [];
+        for(let page of pagesStore) {
+            let finalPage = [];
+            for(let el of page) {
+                let finalEl = { type: el.type, points: Number(el.points) || (el.type === 'text' ? 0 : 1), imageBase64: el.imageBase64 || null };
+                if(el.type === 'text') finalEl.content = el.content || "";
+                else if(el.type === 'choice') finalEl.content = el.content || "", finalEl.options = el.options || [], finalEl.correctAnswer = [el.correctIndex || 0];
+                else finalEl.content = el.content || "";
+                finalPage.push(finalEl);
+            }
+            finalPages.push(finalPage);
         }
-        if(finalElems.length===0) { showToast("Добавьте хотя бы одну страницу", true); return; }
-        await db.collection("tasks").add({ title, targetClass, elements:finalElems, published:true, createdBy:currentUserObj.uid, createdAt:firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection("tasks").add({
+            title, targetClass, pages: finalPages, published: true,
+            createdBy: currentUserObj.uid,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
         showToast("Задание опубликовано!");
-        elementsStore = []; renderConstructorUI(); document.getElementById("taskName").value=""; document.getElementById("taskClass").value="";
-        loadMyTasksForMentor(); loadTasks();
+        pagesStore = [];
+        renderConstructorUI();
+        document.getElementById("taskName").value = "";
+        document.getElementById("taskClass").value = "";
+        loadMyTasksForMentor();
+        loadTasks();
     });
+    
     async function loadMyTasksForMentor() {
-        if(userRole!=="mentor") return;
-        let snap = await db.collection("tasks").where("createdBy","==",currentUserObj.uid).get();
+        if(userRole !== "mentor") return;
+        let snap = await db.collection("tasks").where("createdBy", "==", currentUserObj.uid).get();
         let cont = document.getElementById("myPublishedTasks");
         cont.innerHTML = "";
-        snap.forEach(doc => { cont.innerHTML += `<div class="border-b py-2 flex justify-between"><span class="font-medium">${doc.data().title} (${doc.data().targetClass})</span><button data-id="${doc.id}" class="delMine text-red-500 text-sm">Удалить</button></div>`; });
-        document.querySelectorAll(".delMine").forEach(btn=>btn.addEventListener("click", async(e)=>{ if(confirm("Удалить?")){ await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasks(); } }));
+        for(let doc of snap.docs) {
+            let taskData = doc.data();
+            let resultsSnap = await db.collection("results").where("taskId", "==", doc.id).get();
+            let resultsCount = resultsSnap.size;
+            cont.innerHTML += `<div class="border-b py-2 flex justify-between items-center"><div><span class="font-medium">${taskData.title}</span><span class="text-xs text-gray-400 ml-2">(${taskData.targetClass})</span><div class="text-xs text-indigo-500">${resultsCount} учеников прошли</div></div><button data-id="${doc.id}" class="delMine text-red-500 text-sm">Удалить</button></div>`;
+        }
+        document.querySelectorAll(".delMine").forEach(btn => btn.addEventListener("click", async (e) => {
+            if(confirm("Удалить задание?")) {
+                await db.collection("tasks").doc(btn.dataset.id).delete();
+                loadMyTasksForMentor();
+                loadTasks();
+                showToast("Задание удалено");
+            }
+        }));
     }
-    function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+    
+    function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m=>({ '&':'&amp;', '<':'&lt;', '&gt;':'&gt;' }[m])); }
 </script>
 </body>
 </html>
