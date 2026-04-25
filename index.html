@@ -4,20 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Олимпиадская застава</title>
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <!-- Tailwind + Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* нижняя навигация как в телеграме */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-slide { animation: fadeSlideUp 0.3s ease-out forwards; }
+        .animate-fade { animation: fadeIn 0.2s ease-out; }
         .bottom-nav {
             background: rgba(255,255,255,0.96);
             backdrop-filter: blur(20px);
             border-radius: 30px 30px 0 0;
             box-shadow: 0 -2px 12px rgba(0,0,0,0.05);
+            transition: all 0.2s;
         }
         .nav-item {
             transition: all 0.2s;
@@ -39,18 +47,60 @@
             max-height: 150px;
             object-fit: contain;
             border-radius: 16px;
+            cursor: pointer;
         }
-        /* скроллы */
+        .image-popup {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: pointer;
+        }
+        .image-popup img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .toast-notify {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            z-index: 1100;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+            animation: fadeSlideUp 0.2s ease;
+        }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .task-card.completed {
+            opacity: 0.75;
+            background: #f3f4f6;
+            border-left: 4px solid #22c55e;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans pb-20">
 
+<!-- ЭКРАН ВХОДА -->
 <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-800 to-indigo-900">
-    <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6">
-        <div class="text-center mb-5"><i class="fas fa-shield-alt text-5xl text-indigo-600"></i><h1 class="text-2xl font-bold mt-2">Олимпиадская застава</h1></div>
+    <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 animate-fade-slide">
+        <div class="text-center mb-5">
+            <img id="authLogo" src="img1/logo.png" alt="Лого" class="w-20 h-20 mx-auto rounded-full object-cover" onerror="this.onerror=null; this.style.display='none'; this.nextSibling.style.display='flex'">
+            <div style="display:none" class="w-20 h-20 bg-indigo-100 rounded-full mx-auto flex items-center justify-center text-indigo-600 text-2xl"><i class="fas fa-shield-alt"></i></div>
+            <h1 class="text-2xl font-bold mt-2">Олимпиадская застава</h1>
+        </div>
         <form id="loginForm">
             <input type="email" id="loginEmail" placeholder="Email" class="w-full border rounded-xl p-3 mb-3" required>
             <input type="password" id="loginPassword" placeholder="Пароль" class="w-full border rounded-xl p-3 mb-4" required>
@@ -60,25 +110,26 @@
     </div>
 </div>
 
+<!-- ГЛАВНОЕ ПРИЛОЖЕНИЕ -->
 <div id="mainApp" class="hidden min-h-screen flex flex-col">
-    <!-- Верхняя панель с приветствием -->
-    <div class="bg-white px-5 pt-6 pb-2 shadow-sm sticky top-0 z-10">
-        <div class="flex justify-between items-start">
+    <!-- Синий блок приветствия с логотипом -->
+    <div class="bg-indigo-600 px-5 pt-8 pb-5 rounded-b-3xl shadow-lg">
+        <div class="flex items-center gap-3">
+            <img id="mainLogo" src="img1/logo.png" class="w-12 h-12 rounded-full object-cover border-2 border-white" onerror="this.onerror=null; this.style.display='none'">
             <div>
-                <div id="greetingText" class="text-sm text-gray-500"></div>
-                <div id="userDisplayName" class="text-xl font-bold text-gray-800"></div>
+                <div id="greetingText" class="text-indigo-100 text-sm"></div>
+                <div id="userDisplayName" class="text-white text-xl font-bold"></div>
             </div>
-            <div class="bg-indigo-100 w-12 h-12 rounded-full flex items-center justify-center text-indigo-700 text-xl font-semibold" id="avatarInitial"></div>
         </div>
     </div>
 
-    <!-- Контентная область -->
+    <!-- Контент -->
     <div class="flex-1 p-4 pb-24 overflow-y-auto">
         <div id="tasksPanel" class="tab-content w-full">
             <div id="tasksListContainer" class="space-y-4"></div>
         </div>
         <div id="constructorPanel" class="tab-content hidden w-full">
-            <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+            <div class="bg-white rounded-2xl p-4 shadow-sm mb-6 animate-fade">
                 <h2 class="text-lg font-bold mb-3">Новое задание</h2>
                 <input type="text" id="taskName" placeholder="Название" class="w-full border rounded-xl p-2 mb-2">
                 <input type="text" id="taskClass" placeholder="Класс (7А, 8Б)" class="w-full border rounded-xl p-2 mb-4">
@@ -93,7 +144,7 @@
             <div class="bg-white rounded-2xl p-4"><h3 class="font-bold mb-2">Мои задания</h3><div id="myPublishedTasks" class="space-y-2"></div></div>
         </div>
         <div id="profilePanel" class="tab-content hidden w-full">
-            <div class="bg-white rounded-2xl p-5 shadow-sm text-center">
+            <div class="bg-white rounded-2xl p-5 shadow-sm text-center animate-fade">
                 <div class="w-24 h-24 bg-indigo-100 rounded-full mx-auto flex items-center justify-center text-3xl font-bold text-indigo-700 mb-3" id="profileAvatar"></div>
                 <h2 id="profileName" class="text-xl font-bold"></h2>
                 <p id="profileEmail" class="text-gray-500 text-sm"></p>
@@ -103,7 +154,7 @@
         </div>
     </div>
 
-    <!-- Нижняя навигация (Telegram-style) -->
+    <!-- Нижняя навигация -->
     <div class="bottom-nav fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-2 px-4 z-20">
         <button data-nav="tasks" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-tasks text-xl"></i><span class="text-xs mt-1">Задания</span></button>
         <button data-nav="constructor" class="nav-item mentor-only flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-pen-ruler text-xl"></i><span class="text-xs mt-1">Конструктор</span></button>
@@ -111,9 +162,9 @@
     </div>
 </div>
 
-<!-- Модалка прохождения с результатом внутри -->
+<!-- Модалка прохождения -->
 <div id="quizModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col animate-fade">
         <div class="p-4 border-b flex justify-between items-center"><h2 id="modalTaskTitle" class="font-bold text-lg"></h2><button id="closeModalBtn" class="text-2xl">&times;</button></div>
         <div id="quizContent" class="flex-1 overflow-auto p-4 space-y-4"></div>
         <div class="p-3 border-t flex justify-between">
@@ -126,17 +177,29 @@
 </div>
 
 <script>
+    // ========== FIREBASE ==========
     const config = { apiKey: "AIzaSyDT6xPjDxldqrmjWuG-VF7AVoot-RFUkH0", authDomain: "olymp-e7d79.firebaseapp.com", projectId: "olymp-e7d79", storageBucket: "olymp-e7d79.firebasestorage.app", messagingSenderId: "212523217131", appId: "1:212523217131:web:6acdbf9443cf4f22440eae" };
     firebase.initializeApp(config);
     const auth = firebase.auth(), db = firebase.firestore();
 
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
     let currentTask = null, currentAnswers = [], currentElements = [], currentStep = 0;
+    let completedTasksIds = new Set(); // для отметки пройденных
 
-    function showModalMessage(title, text, isError=false) {
-        // простая замена тоста — модалка или alert? но сделаем аккуратный диалог:
-        alert(`${title}\n${text}`);
+    // Всплывающее уведомление (не alert)
+    function showToast(message, isError = false) {
+        let existing = document.querySelector('.toast-notify');
+        if(existing) existing.remove();
+        let toast = document.createElement('div');
+        toast.className = 'toast-notify';
+        toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-triangle' : 'fa-check-circle'} mr-2"></i>${message}`;
+        toast.style.background = isError ? '#b91c1c' : '#1e293b';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2800);
     }
+
+    // Вибрация (если поддерживается)
+    function vibrate() { if(navigator.vibrate) navigator.vibrate(10); }
 
     async function loadUserData(uid) {
         let doc = await db.collection("users").doc(uid).get();
@@ -145,7 +208,15 @@
             userClass = doc.data().class || "";
             userDisplayName = doc.data().displayName || doc.data().email?.split('@')[0] || "Ученик";
             return true;
-        } else { alert("Роль не назначена администратором"); return false; }
+        } else { showToast("Роль не назначена администратором", true); return false; }
+    }
+
+    // Получение списка пройденных заданий ученика
+    async function loadCompletedTasks() {
+        if(userRole !== "student") return;
+        let snap = await db.collection("results").where("studentId","==",currentUserObj.uid).get();
+        completedTasksIds.clear();
+        snap.forEach(doc => completedTasksIds.add(doc.data().taskId));
     }
 
     auth.onAuthStateChanged(async (u) => {
@@ -153,6 +224,7 @@
             currentUserObj = u;
             let ok = await loadUserData(u.uid);
             if(!ok) { auth.signOut(); return; }
+            await loadCompletedTasks();
             document.getElementById("authScreen").classList.add("hidden");
             document.getElementById("mainApp").classList.remove("hidden");
             updateProfileUI();
@@ -170,7 +242,7 @@
     document.getElementById("loginForm").addEventListener("submit", async(e)=>{
         e.preventDefault();
         let email = document.getElementById("loginEmail").value, pwd = document.getElementById("loginPassword").value;
-        try { await auth.signInWithEmailAndPassword(email,pwd); } catch(err) { alert("Ошибка: "+err.message); }
+        try { await auth.signInWithEmailAndPassword(email,pwd); showToast("Добро пожаловать!"); } catch(err) { showToast("Ошибка: "+err.message, true); }
     });
 
     function updateProfileUI() {
@@ -180,15 +252,16 @@
         document.getElementById("profileRole").innerText = (userRole === "mentor" ? "Наставник" : "Ученик");
         document.getElementById("profileClass").innerText = userClass || "—";
         let initial = userDisplayName.charAt(0).toUpperCase();
-        document.getElementById("avatarInitial").innerText = initial;
         document.getElementById("profileAvatar").innerText = initial;
+        try { document.getElementById("authLogo").src = "img1/logo.png"; document.getElementById("mainLogo").src = "img1/logo.png"; } catch(e){}
     }
     function setGreeting() {
         let hour = new Date().getHours();
         let text = hour < 12 ? "Доброе утро" : (hour < 18 ? "Добрый день" : "Добрый вечер");
-        document.getElementById("greetingText").innerHTML = `${text},`;
+        document.getElementById("greetingText").innerHTML = text;
     }
     function switchNav(tab) {
+        vibrate();
         document.querySelectorAll(".tab-content").forEach(el=>el.classList.add("hidden"));
         document.getElementById(`${tab}Panel`).classList.remove("hidden");
         document.querySelectorAll(".nav-item").forEach(btn=>btn.classList.remove("active"));
@@ -206,25 +279,29 @@
         q.forEach(doc=>{ let d = doc.data(); if(userRole==="student" && d.targetClass !== userClass) return; tasks.push({id:doc.id, ...d}); });
         if(tasks.length===0) { container.innerHTML='<div class="text-center text-gray-400">Нет заданий</div>'; return; }
         container.innerHTML = "";
-        tasks.forEach(t=>{
+        for(let t of tasks) {
+            let isCompleted = userRole==="student" && completedTasksIds.has(t.id);
             let card = document.createElement("div");
-            card.className = "bg-white rounded-xl shadow p-4";
-            card.innerHTML = `<div class="font-bold">${escapeHtml(t.title)}</div><div class="text-sm text-gray-500">Класс: ${t.targetClass} | Этапов: ${t.elements?.length||0}</div><button data-id="${t.id}" class="task-start mt-3 bg-indigo-50 text-indigo-700 py-1.5 px-3 rounded-xl w-full">${userRole==="student"?"Начать":"Посмотреть"}</button>`;
+            card.className = `task-card bg-white rounded-xl shadow p-4 transition ${isCompleted ? 'completed' : ''}`;
+            card.innerHTML = `<div class="font-bold">${escapeHtml(t.title)}</div><div class="text-sm text-gray-500">Класс: ${t.targetClass} | Этапов: ${t.elements?.length||0}</div>
+            ${isCompleted ? '<div class="text-green-600 text-xs mt-1"><i class="fas fa-check-circle"></i> Пройдено</div>' : ''}
+            <button data-id="${t.id}" class="task-start mt-3 bg-indigo-50 text-indigo-700 py-1.5 px-3 rounded-xl w-full">${userRole==="student" ? (isCompleted ? "Просмотр" : "Начать") : "Посмотреть"}</button>`;
             container.appendChild(card);
-        });
+        }
         document.querySelectorAll(".task-start").forEach(btn=>btn.addEventListener("click", async(e)=>{
             let id = btn.dataset.id;
             let snap = await db.collection("tasks").doc(id).get();
             if(snap.exists) {
                 currentTask = {id:snap.id, ...snap.data()};
-                if(userRole === "student") startQuiz();
+                if(userRole === "student" && !completedTasksIds.has(id)) startQuiz();
+                else if(userRole === "student" && completedTasksIds.has(id)) showToast("Вы уже прошли это задание", false);
                 else alert("Режим просмотра наставника");
             }
         }));
     }
 
-    // ---------- КОНСТРУКТОР С ФОТО ----------
-    let elementsStore = []; // {type, content, options, correct, points, imageBase64}
+    // ---------- КОНСТРУКТОР С ФОТО (данные сохраняются без потерь) ----------
+    let elementsStore = [];
     function renderConstructorUI() {
         let container = document.getElementById("elementsContainer");
         if(!container) return;
@@ -234,14 +311,13 @@
             div.className = "border rounded-xl p-3 bg-gray-50";
             div.innerHTML = `<div class="flex justify-between items-center"><b>${el.type==='text'?'Текст':el.type==='choice'?'Выбор ответа':'Текстовое поле'}</b><button data-idx="${idx}" class="delElem text-red-500 text-sm">Удалить</button></div>`;
             if(el.type === 'text') {
-                div.innerHTML += `<textarea class="w-full border p-2 rounded mt-1" placeholder="Текст">${el.content||''}</textarea><input placeholder="Баллы (0)" class="w-24 border p-1 mt-1" value="${el.points||0}">`;
+                div.innerHTML += `<textarea class="w-full border p-2 rounded mt-1 content-text" placeholder="Текст">${el.content||''}</textarea><input placeholder="Баллы (0)" class="w-24 border p-1 mt-1 pointsVal" value="${el.points||0}">`;
             } else if(el.type === 'choice') {
-                div.innerHTML += `<input placeholder="Вопрос" class="w-full border p-2 mt-1" value="${el.content||''}"><div class="mt-1">Варианты (через запятую): <input class="w-full border p-1 options-input" value="${(el.options||[]).join(',')}"></div><div>Правильные (индексы 0..): <input class="w-full border p-1 correct-input" value="${(el.correct||[]).join(',')}"></div><input placeholder="Макс балл" class="w-24 border p-1 mt-1 points-input" value="${el.points||1}">`;
+                div.innerHTML += `<input placeholder="Вопрос" class="w-full border p-2 mt-1 content-text" value="${el.content||''}"><div class="mt-1">Варианты (через запятую): <input class="w-full border p-1 options-input" value="${(el.options||[]).join(',')}"></div><div>Правильные (индексы 0..): <input class="w-full border p-1 correct-input" value="${(el.correct||[]).join(',')}"></div><input placeholder="Макс балл" class="w-24 border p-1 mt-1 pointsVal" value="${el.points||1}">`;
             } else {
-                div.innerHTML += `<textarea class="w-full border p-2 mt-1" placeholder="Текст вопроса">${el.content||''}</textarea><input placeholder="Баллы" class="w-24 border p-1 mt-1 points-input" value="${el.points||1}">`;
+                div.innerHTML += `<textarea class="w-full border p-2 mt-1 content-text" placeholder="Текст вопроса">${el.content||''}</textarea><input placeholder="Баллы" class="w-24 border p-1 mt-1 pointsVal" value="${el.points||1}">`;
             }
-            // фото
-            if(el.imageBase64) div.innerHTML += `<div class="mt-2"><img src="${el.imageBase64}" class="h-16 rounded border"><button data-idx="${idx}" class="remove-photo text-xs text-red-500 mt-1">Удалить фото</button></div>`;
+            if(el.imageBase64) div.innerHTML += `<div class="mt-2 relative"><img src="${el.imageBase64}" class="h-16 rounded border cursor-pointer preview-img"><button data-idx="${idx}" class="remove-photo text-xs text-red-500 ml-2">Удалить фото</button></div>`;
             div.innerHTML += `<button data-idx="${idx}" class="add-photo-btn text-xs bg-gray-200 px-2 py-1 rounded mt-2">📷 Добавить фото</button><input type="file" accept="image/*" class="photo-file hidden" data-idx="${idx}">`;
             container.appendChild(div);
         });
@@ -259,37 +335,36 @@
             };
         }));
         document.querySelectorAll(".remove-photo").forEach(btn=>btn.addEventListener("click",(e)=>{ let i=btn.dataset.idx; elementsStore[i].imageBase64 = null; renderConstructorUI(); }));
+        document.querySelectorAll(".preview-img").forEach(img=>img.addEventListener("click",(e)=>showImagePopup(img.src)));
     }
     document.getElementById("addTextBtn")?.addEventListener("click",()=>{ elementsStore.push({type:"text", content:"", points:0, imageBase64:null}); renderConstructorUI(); });
     document.getElementById("addChoiceBtn")?.addEventListener("click",()=>{ elementsStore.push({type:"choice", content:"", options:[], correct:[], points:1, imageBase64:null}); renderConstructorUI(); });
     document.getElementById("addTextareaBtn")?.addEventListener("click",()=>{ elementsStore.push({type:"textarea", content:"", points:1, imageBase64:null}); renderConstructorUI(); });
     document.getElementById("publishTaskBtn")?.addEventListener("click", async()=>{
         let title = document.getElementById("taskName").value, targetClass = document.getElementById("taskClass").value;
-        if(!title || !targetClass) { alert("Заполните название и класс"); return; }
+        if(!title || !targetClass) { showToast("Заполните название и класс", true); return; }
         let finalElems = [];
         let wrappers = document.querySelectorAll("#elementsContainer > div");
         for(let i=0;i<elementsStore.length;i++){
             let el = elementsStore[i];
             let wrap = wrappers[i];
-            if(el.type === 'text') {
-                let content = wrap.querySelector("textarea")?.value;
-                let pts = parseInt(wrap.querySelector("input[placeholder*='Баллы']")?.value)||0;
-                finalElems.push({type:"text", content, points:pts, imageBase64: el.imageBase64 || null});
-            } else if(el.type === 'choice') {
-                let content = wrap.querySelector("input[placeholder='Вопрос']")?.value;
-                let optsRaw = wrap.querySelector(".options-input")?.value; let options = optsRaw.split(",").map(s=>s.trim());
-                let correctRaw = wrap.querySelector(".correct-input")?.value; let correct = correctRaw.split(",").map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
-                let pts = parseInt(wrap.querySelector(".points-input")?.value)||1;
-                finalElems.push({type:"choice", content, options, correctAnswer:correct, points:pts, imageBase64: el.imageBase64||null});
+            let content = wrap.querySelector(".content-text")?.value || "";
+            let points = parseInt(wrap.querySelector(".pointsVal")?.value) || 0;
+            if(el.type === 'choice') {
+                let optsRaw = wrap.querySelector(".options-input")?.value || "";
+                let options = optsRaw.split(",").map(s=>s.trim());
+                let correctRaw = wrap.querySelector(".correct-input")?.value || "";
+                let correct = correctRaw.split(",").map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+                finalElems.push({type:"choice", content, options, correctAnswer:correct, points, imageBase64: el.imageBase64 || null});
+            } else if(el.type === 'textarea') {
+                finalElems.push({type:"textarea", content, points, imageBase64: el.imageBase64 || null});
             } else {
-                let content = wrap.querySelector("textarea")?.value;
-                let pts = parseInt(wrap.querySelector(".points-input")?.value)||1;
-                finalElems.push({type:"textarea", content, points:pts, imageBase64: el.imageBase64||null});
+                finalElems.push({type:"text", content, points, imageBase64: el.imageBase64 || null});
             }
         }
-        if(finalElems.length===0) { alert("Добавьте хотя бы один элемент"); return; }
+        if(finalElems.length===0) { showToast("Добавьте хотя бы один элемент", true); return; }
         await db.collection("tasks").add({ title, targetClass, elements:finalElems, published:true, createdBy:currentUserObj.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        alert("Задание опубликовано!");
+        showToast("Задание опубликовано!");
         elementsStore = []; renderConstructorUI(); document.getElementById("taskName").value=""; document.getElementById("taskClass").value="";
         loadMyTasksForMentor(); loadTasks();
     });
@@ -299,13 +374,13 @@
         let cont = document.getElementById("myPublishedTasks");
         cont.innerHTML = "";
         snap.forEach(doc=>{ cont.innerHTML += `<div class="border-b py-2 flex justify-between"><span>${doc.data().title} (${doc.data().targetClass})</span><button data-id="${doc.id}" class="delMine text-red-500 text-sm">Удалить</button></div>`; });
-        document.querySelectorAll(".delMine").forEach(btn=>btn.addEventListener("click", async(e)=>{ if(confirm("Удалить?")){ await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasks(); } }));
+        document.querySelectorAll(".delMine").forEach(btn=>btn.addEventListener("click", async(e)=>{ if(confirm("Удалить задание?")){ await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasks(); showToast("Удалено"); } }));
     }
 
-    // ---------- ПРОХОЖДЕНИЕ С ФОТО и РЕЗУЛЬТАТОМ В ОКНЕ ----------
+    // ---------- ПРОХОЖДЕНИЕ ----------
     async function startQuiz() {
         let existing = await db.collection("results").where("taskId","==",currentTask.id).where("studentId","==",currentUserObj.uid).get();
-        if(!existing.empty){ alert("Вы уже проходили это задание!"); return; }
+        if(!existing.empty){ showToast("Вы уже проходили это задание", true); return; }
         currentElements = currentTask.elements;
         currentAnswers = new Array(currentElements.length).fill(null);
         currentStep = 0;
@@ -318,17 +393,17 @@
         let el = currentElements[currentStep];
         let ans = currentAnswers[currentStep];
         let html = `<div class="mb-2 font-bold">Шаг ${currentStep+1} из ${currentElements.length}</div>`;
-        if(el.imageBase64) html += `<img src="${el.imageBase64}" class="modal-photo my-2 max-h-32 rounded">`;
-        if(el.type === 'text') html += `<div class="bg-gray-100 p-3 rounded">${el.content || "Информация"}</div>`;
+        if(el.imageBase64) html += `<img src="${el.imageBase64}" class="modal-photo my-2 max-h-32 rounded cursor-pointer" onclick="showImagePopup('${el.imageBase64}')">`;
+        if(el.type === 'text') html += `<div class="bg-gray-100 p-3 rounded">${escapeHtml(el.content) || "Информация"}</div>`;
         else if(el.type === 'choice') {
-            html += `<div class="font-medium">${el.content}</div><div class="space-y-2 mt-2">`;
+            html += `<div class="font-medium">${escapeHtml(el.content)}</div><div class="space-y-2 mt-2">`;
             el.options.forEach((opt,idx)=>{
                 let selected = (ans && ans.selected === idx);
-                html += `<div class="quiz-option p-2 rounded-xl cursor-pointer flex items-center gap-2" data-opt="${idx}"><div class="w-5 h-5 rounded-full border ${selected?'bg-indigo-600 border-indigo-600':'border-gray-300'}"></div> ${opt}</div>`;
+                html += `<div class="quiz-option p-2 rounded-xl cursor-pointer flex items-center gap-2" data-opt="${idx}"><div class="w-5 h-5 rounded-full border ${selected?'bg-indigo-600 border-indigo-600':'border-gray-300'}"></div> ${escapeHtml(opt)}</div>`;
             });
             html += `</div><div class="text-xs text-gray-400 mt-2">Баллов: ${el.points}</div>`;
         } else if(el.type === 'textarea') {
-            html += `<div class="font-medium">${el.content}</div><textarea id="textareaAns" class="w-full border rounded-xl p-2 mt-2" rows="3" placeholder="Ваш ответ">${ans || ''}</textarea><div class="text-xs text-gray-400 mt-1">Баллов: ${el.points}</div>`;
+            html += `<div class="font-medium">${escapeHtml(el.content)}</div><textarea id="textareaAns" class="w-full border rounded-xl p-2 mt-2" rows="3" placeholder="Ваш ответ">${ans || ''}</textarea><div class="text-xs text-gray-400 mt-1">Баллов: ${el.points}</div>`;
         }
         container.innerHTML = html;
         document.getElementById("quizStepCounter").innerText = `${currentStep+1}/${currentElements.length}`;
@@ -347,6 +422,13 @@
             if(txt) txt.addEventListener("input",(e)=>{ currentAnswers[currentStep] = e.target.value; });
         } else if(el.type === 'text') { if(!currentAnswers[currentStep]) currentAnswers[currentStep] = "viewed"; }
     }
+    window.showImagePopup = (src) => {
+        let popup = document.createElement('div');
+        popup.className = 'image-popup animate-fade';
+        popup.innerHTML = `<img src="${src}"><div class="absolute top-5 right-5 text-white text-3xl cursor-pointer">&times;</div>`;
+        popup.addEventListener('click', (e) => { if(e.target === popup || e.target.tagName === 'DIV') popup.remove(); });
+        document.body.appendChild(popup);
+    };
     document.getElementById("quizNext")?.addEventListener("click",()=>{ if(currentStep < currentElements.length-1){ currentStep++; renderQuizStep(); } });
     document.getElementById("quizPrev")?.addEventListener("click",()=>{ if(currentStep > 0){ currentStep--; renderQuizStep(); } });
     document.getElementById("quizFinal")?.addEventListener("click", async()=>{
@@ -354,14 +436,15 @@
         for(let i=0;i<currentElements.length;i++){
             let q = currentElements[i], a = currentAnswers[i];
             if(q.type === 'choice' && a) { total+=q.points; if(q.correctAnswer.includes(a.selected)) earned+=q.points; }
-            else if(q.type === 'textarea' && a && a.trim().length>0) { total+=q.points; earned+=q.points; }
+            else if(q.type === 'textarea' && a && a.toString().trim().length>0) { total+=q.points; earned+=q.points; }
             else if(q.type === 'text') {}
             else total += q.points;
         }
         let percent = total? Math.round(earned/total*100):0;
         await db.collection("results").add({ taskId: currentTask.id, taskTitle: currentTask.title, studentId: currentUserObj.uid, studentEmail: currentUserObj.email, earnedPoints: earned, totalPoints: total, percent, completedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        alert(`✅ Результат: ${earned}/${total} (${percent}%)`);
+        showToast(`Результат: ${earned}/${total} (${percent}%)`);
         document.getElementById("quizModal").classList.add("hidden");
+        await loadCompletedTasks();
         loadTasks();
     });
     document.getElementById("closeModalBtn")?.addEventListener("click",()=>document.getElementById("quizModal").classList.add("hidden"));
