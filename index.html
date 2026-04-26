@@ -61,7 +61,6 @@
         <img id="mainLogo" src="img1/logo.png" alt="Логотип" class="logo-img h-16 w-auto object-contain" onerror="this.onerror=null; this.style.display='none'">
     </div>
 
-    <!-- Приветствие (показывается только на вкладке Задания) -->
     <div id="greetingContainer" class="greeting-blue-block hidden">
         <div class="flex items-center gap-4">
             <div class="bg-white/20 rounded-full w-14 h-14 flex items-center justify-center text-white text-2xl font-bold" id="greetingAvatar">👤</div>
@@ -77,7 +76,6 @@
             <div id="tasksListContainer" class="space-y-4 mt-4"></div>
         </div>
         
-        <!-- КОНСТРУКТОР - удобный, с вариантами и баллами -->
         <div id="constructorPanel" class="tab-content hidden w-full">
             <div class="bg-white rounded-2xl p-5 shadow-md mb-6">
                 <h2 class="text-xl font-bold mb-4">Создать задание</h2>
@@ -258,7 +256,6 @@
         document.querySelectorAll(".nav-item").forEach(btn => btn.classList.remove("active"));
         document.querySelector(`[data-nav="${tab}"]`)?.classList.add("active");
         
-        // Показываем/скрываем приветствие только на вкладке Задания
         const greeting = document.getElementById("greetingContainer");
         if (tab === "tasks") {
             greeting.classList.remove("hidden");
@@ -377,7 +374,7 @@
         for (let i = 0; i < pageElements.length; i++) {
             const el = pageElements[i];
             const ans = (currentPageAnswers[currentPage] || {})[i];
-            html += `<div class="task-element-card"><div class="font-semibold mb-2">Задание ${i + 1} <span class="text-xs text-gray-400">(${el.type === 'text' ? 'Инфо' : (el.type === 'choice' ? 'Выбор' : 'Текст')}, баллов: ${el.points})</span></div>`;
+            html += `<div class="task-element-card" data-elem-index="${i}"><div class="font-semibold mb-2">Задание ${i + 1} <span class="text-xs text-gray-400">(${el.type === 'text' ? 'Инфо' : (el.type === 'choice' ? 'Выбор' : 'Текст')}, баллов: ${el.points})</span></div>`;
             if (el.imageBase64) html += `<img src="${el.imageBase64}" class="modal-photo my-2 max-h-32 rounded cursor-pointer" onclick="window.showImagePopup('${el.imageBase64}')">`;
             
             if (el.type === 'text') {
@@ -409,17 +406,23 @@
         
         content.innerHTML = html;
         
+        // ПРИВЯЗКА СОБЫТИЙ — ИСПРАВЛЕНО!
         if (!isMentorMode) {
+            // Для вопросов с выбором ответа
             document.querySelectorAll(".quiz-option").forEach(opt => {
-                opt.addEventListener("click", () => {
-                    const idx = parseInt(opt.dataset.opt);
+                opt.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const selectedIdx = parseInt(opt.dataset.opt);
                     const taskCard = opt.closest('.task-element-card');
-                    const elemIdx = Array.from(taskCard.parentNode.children).indexOf(taskCard);
+                    const elemIdx = parseInt(taskCard.dataset.elemIndex);
                     if (!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {};
-                    currentPageAnswers[currentPage][elemIdx] = { type: 'choice', selected: idx };
+                    currentPageAnswers[currentPage][elemIdx] = { type: 'choice', selected: selectedIdx };
+                    // Перерисовываем для обновления стилей
                     renderFullscreenTask(false);
                 });
             });
+            
+            // Для текстовых полей
             document.querySelectorAll(".textarea-ans").forEach(ta => {
                 ta.addEventListener("input", (e) => {
                     const elemIdx = parseInt(ta.dataset.elemIdx);
@@ -523,7 +526,7 @@
         document.body.appendChild(popup);
     };
     
-    // ========== КОНСТРУКТОР С ЛЕГКОЙ НАСТРОЙКОЙ ==========
+    // КОНСТРУКТОР
     let pagesStore = [[]];
     
     function renderConstructorUI() {
@@ -582,7 +585,6 @@
                     
                     elementsContainer.appendChild(elemCard);
                     
-                    // Обработчики
                     const contentInput = elemCard.querySelector('.elem-content');
                     const pointsInput = elemCard.querySelector('.elem-points');
                     contentInput.addEventListener('input', (e) => { pagesStore[pageIdx][elemIdx].content = e.target.value; });
