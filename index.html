@@ -41,6 +41,11 @@
         @media (min-width: 769px) { .auth-bg { background-image: url('img1/bg-pc.png'); } }
         .expired-task { opacity: 0.6; background: #f3f4f6; border-left: 4px solid #ef4444; }
         .deadline-picker { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        /* Фикс для iframe — скролл работает */
+        .feedback-iframe-container { height: 100%; width: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
+        .feedback-iframe-container iframe { width: 100%; height: 100%; border: none; }
+        /* Предотвращаем перерендер при вводе текста */
+        .no-render-trigger { transition: none !important; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans pb-20">
@@ -130,8 +135,8 @@
         <div class="bg-white border-b px-5 py-3 flex justify-end">
             <button id="closeFeedbackBtn" class="text-gray-500 text-2xl hover:text-gray-700">&times;</button>
         </div>
-        <div class="flex-1 overflow-auto p-0">
-            <iframe src="https://forms.yandex.ru/u/69ee23d1d0468856297480b1?iframe=1" class="w-full h-full border-0" style="min-height: 500px;" loading="lazy"></iframe>
+        <div class="flex-1 overflow-auto p-0 feedback-iframe-container">
+            <iframe src="https://forms.yandex.ru/u/69ee23d1d0468856297480b1?iframe=1" style="width:100%; height:100%; border:none;" loading="lazy" title="Форма обратной связи"></iframe>
         </div>
     </div>
 </div>
@@ -337,7 +342,6 @@
             html += `</div>`;
         }
         
-        // Финальная страница для ученика
         if (!isReviewMode && currentPage === currentPagesArray.length - 1 && userRole === "student") {
             let totalPoints = 0, earnedPoints = 0;
             for (let p = 0; p < currentPagesArray.length; p++) {
@@ -361,7 +365,6 @@
             </div>`;
         }
         
-        // Финальная страница для наставника — список учеников
         if (isReviewMode && userRole === "mentor" && currentPage === currentPagesArray.length - 1) {
             html += `<div class="mt-8 border-t pt-6"><h3 class="text-xl font-bold mb-4">📊 Результаты учеников</h3>`;
             if (mentorStudentsList.length === 0) html += `<p class="text-gray-500">Пока никто не прошёл это задание</p>`;
@@ -444,13 +447,16 @@
 
     window.showImagePopup = (src) => { const popup = document.createElement('div'); popup.className = 'image-popup'; popup.innerHTML = `<img src="${src}"><div class="absolute top-5 right-5 text-white text-3xl cursor-pointer">&times;</div>`; popup.addEventListener('click', (e) => { if (e.target === popup || e.target.tagName === 'DIV') popup.remove(); }); document.body.appendChild(popup); };
 
-    // КОНСТРУКТОР (полностью рабочий)
+    // КОНСТРУКТОР — переписан без перерендера при вводе текста
     let pagesStore = [[]];
+    
     function renderConstructorUI() {
-        const container = document.getElementById("pagesContainer"); if (!container) return;
+        const container = document.getElementById("pagesContainer"); 
+        if (!container) return;
         container.innerHTML = "";
         pagesStore.forEach((page, pageIdx) => {
-            const pageDiv = document.createElement("div"); pageDiv.className = "border-2 border-indigo-200 rounded-xl p-4 bg-white mb-4";
+            const pageDiv = document.createElement("div"); 
+            pageDiv.className = "border-2 border-indigo-200 rounded-xl p-4 bg-white mb-4";
             pageDiv.innerHTML = `<div class="flex justify-between items-center mb-3"><span class="font-bold text-indigo-700">Страница ${pageIdx + 1}</span><button class="delete-page text-red-500 text-sm">Удалить страницу</button></div>
             <div id="page-${pageIdx}-elements" class="space-y-3 mb-3"></div>
             <div class="flex gap-2 mt-2 flex-wrap">
@@ -459,60 +465,137 @@
                 <button class="add-elem-btn bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-sm" data-type="textarea"><i class="fas fa-edit mr-1"></i> Свободный ответ</button>
             </div>`;
             container.appendChild(pageDiv);
+            
             const elementsContainer = pageDiv.querySelector(`#page-${pageIdx}-elements`);
+            
             function renderElements() {
                 elementsContainer.innerHTML = "";
                 pagesStore[pageIdx].forEach((el, elemIdx) => {
-                    const elemCard = document.createElement("div"); elemCard.className = "bg-gray-50 rounded-lg p-3 border mb-3";
-                    elemCard.innerHTML = `<div class="flex justify-between items-center mb-2"><span class="font-medium">${el.type === 'text' ? '📄 Текст' : (el.type === 'choice' ? '✓ Выбор ответа' : '✏️ Свободный ответ')}</span><button class="delete-elem text-red-500 text-sm">Удалить</button></div>
-                    <div class="mb-2"><label class="text-sm font-medium">Баллы:</label><input class="elem-points w-24 border rounded-lg p-1 ml-2 text-sm" type="number" value="${el.points || (el.type === 'text' ? 0 : 1)}" min="0"></div>
-                    <textarea class="elem-content w-full border rounded-lg p-2 text-sm mb-2" rows="2" placeholder="Текст...">${escapeHtml(el.content || '')}</textarea>`;
-                    if (el.type === 'choice') elemCard.innerHTML += `<div class="mt-2"><label class="text-sm font-medium">Варианты:</label><div class="options-list mt-1 space-y-1"></div><button class="add-option-btn text-indigo-600 text-sm mt-1"><i class="fas fa-plus mr-1"></i> Добавить вариант</button></div><div class="mt-2"><label class="text-sm font-medium">Правильный ответ:</label><select class="elem-correct border rounded-lg p-1 ml-2 text-sm"></select></div>`;
-                    if (el.imageBase64) elemCard.innerHTML += `<div class="photo-preview-container mt-2"><img src="${el.imageBase64}" class="preview-img max-h-20 rounded cursor-pointer"><div class="remove-photo-btn" data-idx="${elemIdx}">✖</div></div>`;
+                    const elemCard = document.createElement("div"); 
+                    elemCard.className = "bg-gray-50 rounded-lg p-3 border mb-3";
+                    elemCard.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">${el.type === 'text' ? '📄 Текст' : (el.type === 'choice' ? '✓ Выбор ответа' : '✏️ Свободный ответ')}</span>
+                            <button class="delete-elem text-red-500 text-sm">Удалить</button>
+                        </div>
+                        <div class="mb-2">
+                            <label class="text-sm font-medium">Баллы:</label>
+                            <input class="elem-points w-24 border rounded-lg p-1 ml-2 text-sm" type="number" value="${el.points || (el.type === 'text' ? 0 : 1)}" min="0">
+                        </div>
+                        <textarea class="elem-content w-full border rounded-lg p-2 text-sm mb-2" rows="2" placeholder="Текст...">${escapeHtml(el.content || '')}</textarea>
+                    `;
+                    if (el.type === 'choice') {
+                        elemCard.innerHTML += `<div class="mt-2"><label class="text-sm font-medium">Варианты:</label><div class="options-list mt-1 space-y-1"></div><button class="add-option-btn text-indigo-600 text-sm mt-1"><i class="fas fa-plus mr-1"></i> Добавить вариант</button></div><div class="mt-2"><label class="text-sm font-medium">Правильный ответ:</label><select class="elem-correct border rounded-lg p-1 ml-2 text-sm"></select></div>`;
+                    }
+                    if (el.imageBase64) {
+                        elemCard.innerHTML += `<div class="photo-preview-container mt-2"><img src="${el.imageBase64}" class="preview-img max-h-20 rounded cursor-pointer"><div class="remove-photo-btn" data-idx="${elemIdx}">✖</div></div>`;
+                    }
                     elemCard.innerHTML += `<div class="mt-2"><button class="add-photo-btn text-indigo-600 text-sm"><i class="fas fa-camera mr-1"></i> Добавить изображение</button><input type="file" accept="image/*" class="photo-file hidden"></div>`;
                     elementsContainer.appendChild(elemCard);
+                    
+                    // Обработчики без перерендера всей страницы
                     const contentInput = elemCard.querySelector('.elem-content');
                     const pointsInput = elemCard.querySelector('.elem-points');
-                    if (contentInput) contentInput.addEventListener('input', (e) => { pagesStore[pageIdx][elemIdx].content = e.target.value; });
-                    if (pointsInput) pointsInput.addEventListener('input', (e) => { pagesStore[pageIdx][elemIdx].points = parseInt(e.target.value) || 0; });
+                    if (contentInput) {
+                        contentInput.addEventListener('input', (e) => { 
+                            pagesStore[pageIdx][elemIdx].content = e.target.value; 
+                        });
+                    }
+                    if (pointsInput) {
+                        pointsInput.addEventListener('input', (e) => { 
+                            pagesStore[pageIdx][elemIdx].points = parseInt(e.target.value) || 0; 
+                        });
+                    }
                     if (el.type === 'choice') {
                         if (!el.options) el.options = ["Вариант 1"];
                         if (el.correctIndex === undefined) el.correctIndex = 0;
                         const optionsList = elemCard.querySelector('.options-list');
                         const correctSelect = elemCard.querySelector('.elem-correct');
                         function renderOptions() {
-                            optionsList.innerHTML = ''; correctSelect.innerHTML = '';
+                            optionsList.innerHTML = ''; 
+                            correctSelect.innerHTML = '';
                             el.options.forEach((opt, optIdx) => {
-                                const optDiv = document.createElement('div'); optDiv.className = 'option-row';
+                                const optDiv = document.createElement('div'); 
+                                optDiv.className = 'option-row';
                                 optDiv.innerHTML = `<input type="text" class="flex-1 border rounded-lg p-1 text-sm option-text" value="${escapeHtml(opt)}"><button class="remove-option text-red-400 text-sm">✖</button>`;
                                 optionsList.appendChild(optDiv);
-                                optDiv.querySelector('.option-text').addEventListener('input', (e) => { el.options[optIdx] = e.target.value; renderOptions(); });
-                                optDiv.querySelector('.remove-option').onclick = () => { el.options.splice(optIdx, 1); if (el.correctIndex >= el.options.length) el.correctIndex = 0; renderOptions(); };
+                                const optInput = optDiv.querySelector('.option-text');
+                                optInput.addEventListener('input', (e) => { 
+                                    el.options[optIdx] = e.target.value; 
+                                });
+                                optDiv.querySelector('.remove-option').onclick = () => { 
+                                    el.options.splice(optIdx, 1); 
+                                    if (el.correctIndex >= el.options.length) el.correctIndex = 0; 
+                                    renderOptions(); 
+                                };
                                 const option = document.createElement('option');
                                 option.value = optIdx;
                                 option.textContent = `${optIdx + 1}. ${opt.substring(0, 40)}`;
                                 if (el.correctIndex === optIdx) option.selected = true;
                                 correctSelect.appendChild(option);
                             });
-                            correctSelect.onchange = (e) => { el.correctIndex = parseInt(e.target.value); };
+                            correctSelect.onchange = (e) => { 
+                                el.correctIndex = parseInt(e.target.value); 
+                            };
                         }
                         renderOptions();
-                        elemCard.querySelector('.add-option-btn').onclick = () => { el.options.push(`Новый вариант ${el.options.length + 1}`); renderOptions(); };
+                        elemCard.querySelector('.add-option-btn').onclick = () => { 
+                            el.options.push(`Новый вариант ${el.options.length + 1}`); 
+                            renderOptions(); 
+                        };
                     }
                     const addPhotoBtn = elemCard.querySelector('.add-photo-btn');
                     const fileInput = elemCard.querySelector('.photo-file');
                     addPhotoBtn.onclick = () => fileInput.click();
-                    fileInput.onchange = (ev) => { const file = ev.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (re) => { pagesStore[pageIdx][elemIdx].imageBase64 = re.target.result; renderConstructorUI(); }; reader.readAsDataURL(file); } };
+                    fileInput.onchange = (ev) => { 
+                        const file = ev.target.files[0]; 
+                        if (file) { 
+                            const reader = new FileReader(); 
+                            reader.onload = (re) => { 
+                                pagesStore[pageIdx][elemIdx].imageBase64 = re.target.result; 
+                                renderConstructorUI(); 
+                            }; 
+                            reader.readAsDataURL(file); 
+                        } 
+                    };
                     const removePhotoBtn = elemCard.querySelector('.remove-photo-btn');
-                    if (removePhotoBtn) removePhotoBtn.onclick = () => { pagesStore[pageIdx][elemIdx].imageBase64 = null; renderConstructorUI(); };
+                    if (removePhotoBtn) {
+                        removePhotoBtn.onclick = () => { 
+                            pagesStore[pageIdx][elemIdx].imageBase64 = null; 
+                            renderConstructorUI(); 
+                        };
+                    }
                     const previewImg = elemCard.querySelector('.preview-img');
-                    if (previewImg) previewImg.onclick = () => window.showImagePopup(previewImg.src);
-                    elemCard.querySelector('.delete-elem').onclick = () => { pagesStore[pageIdx].splice(elemIdx, 1); renderElements(); };
+                    if (previewImg) {
+                        previewImg.onclick = () => window.showImagePopup(previewImg.src);
+                    }
+                    elemCard.querySelector('.delete-elem').onclick = () => { 
+                        pagesStore[pageIdx].splice(elemIdx, 1); 
+                        if (pagesStore[pageIdx].length === 0 && pagesStore.length > 1) {
+                            pagesStore.splice(pageIdx, 1);
+                            renderConstructorUI();
+                        } else {
+                            renderElements();
+                        }
+                    };
                 });
             }
             renderElements();
-            pageDiv.querySelector('.delete-page').onclick = () => { pagesStore.splice(pageIdx, 1); renderConstructorUI(); };
-            pageDiv.querySelectorAll('.add-elem-btn').forEach(btn => { btn.onclick = () => { const type = btn.dataset.type; const newElem = { type, content: "", points: type === 'text' ? 0 : 1, imageBase64: null }; if (type === 'choice') newElem.options = ["Вариант 1"], newElem.correctIndex = 0; pagesStore[pageIdx].push(newElem); renderConstructorUI(); }; });
+            
+            pageDiv.querySelector('.delete-page').onclick = () => { 
+                pagesStore.splice(pageIdx, 1); 
+                if (pagesStore.length === 0) pagesStore = [[]];
+                renderConstructorUI(); 
+            };
+            pageDiv.querySelectorAll('.add-elem-btn').forEach(btn => { 
+                btn.onclick = () => { 
+                    const type = btn.dataset.type; 
+                    const newElem = { type: type, content: "", points: type === 'text' ? 0 : 1, imageBase64: null }; 
+                    if (type === 'choice') newElem.options = ["Вариант 1"], newElem.correctIndex = 0; 
+                    pagesStore[pageIdx].push(newElem); 
+                    renderConstructorUI(); 
+                }; 
+            });
         });
     }
     
@@ -525,14 +608,36 @@
         const deadlineTime = document.getElementById("deadlineTime").value;
         let deadline = null;
         if (deadlineDate) deadline = new Date(`${deadlineDate}T${deadlineTime || "23:59"}`).toISOString();
-        const pagesObj = {}; for (let i = 0; i < pagesStore.length; i++) pagesObj[i] = pagesStore[i].map(el => { const base = { type: el.type, points: Number(el.points) || (el.type === 'text' ? 0 : 1), content: el.content || "" }; if (el.type === 'choice') base.options = el.options || ["Вариант 1"], base.correctAnswer = [el.correctIndex || 0]; if (el.imageBase64) base.imageBase64 = el.imageBase64; return base; });
-        try { await db.collection("tasks").add({ title, targetClass, pages: pagesObj, published: true, deadline, createdBy: currentUserObj.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); showToast("Опубликовано!"); pagesStore = [[]]; renderConstructorUI(); document.getElementById("taskName").value = ""; document.getElementById("taskClass").value = ""; document.getElementById("deadlineDate").value = ""; document.getElementById("deadlineTime").value = ""; loadMyTasksForMentor(); loadTasks(); } catch(err) { showToast("Ошибка: " + err.message, true); }
+        const pagesObj = {}; 
+        for (let i = 0; i < pagesStore.length; i++) {
+            pagesObj[i] = pagesStore[i].map(el => { 
+                const base = { type: el.type, points: Number(el.points) || (el.type === 'text' ? 0 : 1), content: el.content || "" }; 
+                if (el.type === 'choice') base.options = el.options || ["Вариант 1"], base.correctAnswer = [el.correctIndex || 0]; 
+                if (el.imageBase64) base.imageBase64 = el.imageBase64; 
+                return base; 
+            });
+        }
+        try { 
+            await db.collection("tasks").add({ title, targetClass, pages: pagesObj, published: true, deadline, createdBy: currentUserObj.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); 
+            showToast("Опубликовано!"); 
+            pagesStore = [[]]; 
+            renderConstructorUI(); 
+            document.getElementById("taskName").value = ""; 
+            document.getElementById("taskClass").value = ""; 
+            document.getElementById("deadlineDate").value = ""; 
+            document.getElementById("deadlineTime").value = ""; 
+            loadMyTasksForMentor(); 
+            loadTasks(); 
+        } catch(err) { 
+            showToast("Ошибка: " + err.message, true); 
+        }
     });
     
     async function loadMyTasksForMentor() {
         if (userRole !== "mentor") return;
         const snap = await db.collection("tasks").where("createdBy", "==", currentUserObj.uid).get();
-        const cont = document.getElementById("myPublishedTasks"); cont.innerHTML = "";
+        const cont = document.getElementById("myPublishedTasks"); 
+        cont.innerHTML = "";
         for (const doc of snap.docs) {
             const taskData = doc.data();
             const resultsSnap = await db.collection("results").where("taskId", "==", doc.id).get();
