@@ -10,42 +10,499 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { font-family: 'Inter', system-ui, sans-serif; }
+        
+        /* ===== АНИМАЦИИ ===== */
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+        @keyframes correctPulse { 0%{transform:scale(1)} 30%{transform:scale(1.03)} 100%{transform:scale(1)} }
+        @keyframes slideInRight { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes confettiFall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes progressFill { from { width: 0%; } to { width: var(--target-width); } }
+        @keyframes starBurst { 0%{transform:scale(0) rotate(-30deg);opacity:0} 60%{transform:scale(1.3) rotate(5deg);opacity:1} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+        @keyframes ripple { 0%{transform:scale(0);opacity:0.6} 100%{transform:scale(2.5);opacity:0} }
+        
         .animate-fade-slide-up { animation: fadeSlideUp 0.3s ease-out forwards; }
-        .animate-scale-in { animation: scaleIn 0.25s ease-out forwards; }
+        .animate-scale-in { animation: scaleIn 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        .animate-slide-right { animation: slideInRight 0.35s ease-out forwards; }
+        
+        /* ===== НАВИГАЦИЯ ===== */
         .bottom-nav { background: rgba(255,255,255,0.96); backdrop-filter: blur(20px); border-radius: 30px 30px 0 0; box-shadow: 0 -2px 12px rgba(0,0,0,0.05); }
         .nav-item { transition: all 0.2s; border-radius: 30px; cursor: pointer; }
         .nav-item.active { background: #eef2ff; color: #4f46e5; transform: scale(1.05); }
-        .quiz-option { transition: all 0.15s ease; border: 1px solid #e2e8f0; cursor: pointer; }
-        .quiz-option.selected { background: #eef2ff; border-color: #4f46e5; }
-        .image-popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; }
-        .image-popup img { max-width: 90%; max-height: 90%; border-radius: 20px; }
-        .toast-notify { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 1100; animation: fadeSlideUp 0.25s ease-out; }
+        
+        /* ===== КАРТОЧКИ ЗАДАНИЙ ===== */
         .task-card { transition: all 0.25s ease; cursor: pointer; }
         .task-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .expired-task { opacity: 0.6; background: #f3f4f6; border-left: 4px solid #ef4444; }
+        
+        /* ===== ЛОГОТИП ===== */
         .logo-img { max-height: 70px; width: auto; object-fit: contain; margin: 0 auto; }
         .white-header { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 8px 0; }
         .greeting-blue-block { background: #4f46e5; border-radius: 28px; margin: 16px 16px 0 16px; padding: 20px; box-shadow: 0 8px 20px rgba(79,70,229,0.25); }
-        .page-indicator { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; transition: all 0.2s; cursor: pointer; background: #e2e8f0; color: #64748b; }
-        .page-indicator.active { transform: scale(1.1); box-shadow: 0 0 0 3px #4f46e5; background: #4f46e5; color: white; }
+        
+        /* ===== КОНСТРУКТОР ===== */
         .task-element-card { background: #f9fafb; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
         .student-result-row { border-bottom: 1px solid #e5e7eb; padding: 12px; cursor: pointer; transition: all 0.2s; }
         .student-result-row:hover { background: #f3f4f6; transform: translateX(5px); }
+        .deadline-picker { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        
+        /* ===== ФОН АВТОРИЗАЦИИ ===== */
         .auth-bg { background-size: cover; background-position: center; background-repeat: no-repeat; }
         @media (max-width: 768px) { .auth-bg { background-image: url('img1/bg-mob.png'); } }
         @media (min-width: 769px) { .auth-bg { background-image: url('img1/bg-pc.png'); } }
-        .expired-task { opacity: 0.6; background: #f3f4f6; border-left: 4px solid #ef4444; }
-        .deadline-picker { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        /* Фикс для iframe — скролл работает */
-        .feedback-iframe-container { height: 100%; width: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
-        .feedback-iframe-container iframe { width: 100%; height: 100%; border: none; }
-        /* Предотвращаем перерендер при вводе текста */
-        .no-render-trigger { transition: none !important; }
+
+        /* ===== ТОСТ ===== */
+        .toast-notify { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 1100; animation: fadeSlideUp 0.25s ease-out; white-space: nowrap; }
+        
+        /* ===== ПОПАП ИЗОБРАЖЕНИЯ ===== */
+        .image-popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; cursor: pointer; }
+        .image-popup img { max-width: 90%; max-height: 90%; border-radius: 20px; }
+        
+        /* ===== МОДАЛЬНОЕ ОКНО ОБРАТНОЙ СВЯЗИ (FIX) ===== */
+        #feedbackModal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 16px;
+            padding-top: max(16px, env(safe-area-inset-top));
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        #feedbackModal.hidden { display: none; }
+        #feedbackModal .modal-inner {
+            background: white;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 680px;
+            min-height: 500px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin: auto;
+            animation: scaleIn 0.25s ease-out;
+        }
+        #feedbackModal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+        #feedbackModal .modal-body {
+            flex: 1;
+            overflow: hidden;
+            min-height: 400px;
+        }
+        #feedbackModal iframe {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            border: none;
+            display: block;
+        }
+
+        /* ===== ПОЛНОЭКРАННОЕ ПРОХОЖДЕНИЕ (НОВЫЙ ДИЗАЙН) ===== */
+        #taskFullscreen {
+            position: fixed;
+            inset: 0;
+            background: #f0f4ff;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #taskFullscreen.hidden { display: none; }
+        
+        /* Шапка задания */
+        .task-fs-header {
+            background: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #e8ecff;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(79,70,229,0.08);
+        }
+        .task-fs-title {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 1rem;
+            color: #1e1b4b;
+            flex: 1;
+            text-align: center;
+        }
+        
+        /* Прогресс-бар */
+        .progress-bar-container {
+            background: white;
+            padding: 10px 16px 12px;
+            flex-shrink: 0;
+        }
+        .progress-track {
+            background: #e8ecff;
+            border-radius: 100px;
+            height: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            height: 100%;
+            border-radius: 100px;
+            transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        
+        /* Страницы-индикаторы */
+        .pages-dots {
+            display: flex;
+            gap: 6px;
+            padding: 8px 16px;
+            background: white;
+            border-bottom: 1px solid #e8ecff;
+            overflow-x: auto;
+            flex-shrink: 0;
+            scrollbar-width: none;
+        }
+        .pages-dots::-webkit-scrollbar { display: none; }
+        .page-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            background: #e8ecff;
+            color: #6366f1;
+            border: 2px solid transparent;
+        }
+        .page-dot.active { background: #6366f1; color: white; border-color: #4f46e5; transform: scale(1.1); }
+        .page-dot.completed { background: #d1fae5; color: #059669; border-color: #6ee7b7; }
+        .page-dot.review-mode { cursor: pointer; }
+        
+        /* Область контента */
+        .task-fs-content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        /* Карточка элемента задания */
+        .elem-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(79,70,229,0.07);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            animation: slideInRight 0.3s ease-out both;
+        }
+        .elem-card:nth-child(1) { animation-delay: 0s; }
+        .elem-card:nth-child(2) { animation-delay: 0.05s; }
+        .elem-card:nth-child(3) { animation-delay: 0.1s; }
+        .elem-card:nth-child(4) { animation-delay: 0.15s; }
+        .elem-card.correct-card { border-color: #10b981; background: #f0fdf4; animation: correctPulse 0.4s ease; }
+        .elem-card.wrong-card { border-color: #ef4444; background: #fff5f5; animation: shake 0.4s ease; }
+        
+        .elem-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #eef2ff;
+            color: #4f46e5;
+            border-radius: 100px;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .elem-question {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e1b4b;
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+        
+        /* Варианты ответов */
+        .choice-option {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 16px;
+            border-radius: 14px;
+            border: 2px solid #e8ecff;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 8px;
+            user-select: none;
+            overflow: hidden;
+        }
+        .choice-option::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--x,50%) var(--y,50%), rgba(99,102,241,0.15), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .choice-option:hover::after { opacity: 1; }
+        .choice-option:hover { border-color: #a5b4fc; transform: translateX(3px); }
+        .choice-option.selected { border-color: #6366f1; background: #eef2ff; }
+        .choice-option.correct-opt { border-color: #10b981 !important; background: #d1fae5 !important; animation: correctPulse 0.4s ease; }
+        .choice-option.wrong-opt { border-color: #ef4444 !important; background: #fee2e2 !important; }
+        .choice-option.show-correct { border-color: #10b981 !important; background: #d1fae5 !important; }
+        .choice-option-radio {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #c7d2fe;
+            background: white;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .choice-option.selected .choice-option-radio { border-color: #6366f1; background: #6366f1; }
+        .choice-option.correct-opt .choice-option-radio { border-color: #10b981; background: #10b981; }
+        .choice-option.wrong-opt .choice-option-radio { border-color: #ef4444; background: #ef4444; }
+        .choice-option-radio-dot { width: 8px; height: 8px; border-radius: 50%; background: white; opacity: 0; transition: opacity 0.15s; }
+        .choice-option.selected .choice-option-radio-dot,
+        .choice-option.correct-opt .choice-option-radio-dot,
+        .choice-option.wrong-opt .choice-option-radio-dot { opacity: 1; }
+        .choice-option-text { font-size: 0.95rem; font-weight: 500; color: #334155; flex: 1; }
+        .choice-option-icon { font-size: 1rem; }
+        
+        /* Текстовый ответ */
+        .textarea-ans {
+            width: 100%;
+            border: 2px solid #e8ecff;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            color: #334155;
+            resize: vertical;
+            transition: border-color 0.2s;
+            background: #f8f9ff;
+            min-height: 90px;
+        }
+        .textarea-ans:focus { outline: none; border-color: #6366f1; background: white; }
+        .textarea-ans:disabled { opacity: 0.7; cursor: not-allowed; }
+        
+        /* Информационный блок */
+        .info-block {
+            background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%);
+            border-radius: 14px;
+            padding: 14px 16px;
+            border-left: 4px solid #6366f1;
+            color: #374151;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        /* Обратная связь на ответ */
+        .answer-feedback {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            margin-top: 10px;
+            animation: popIn 0.3s ease;
+        }
+        .answer-feedback.correct { background: #d1fae5; color: #065f46; }
+        .answer-feedback.wrong { background: #fee2e2; color: #991b1b; }
+        .answer-feedback.partial { background: #fef3c7; color: #92400e; }
+        
+        /* Нижняя навигация задания */
+        .task-fs-footer {
+            background: white;
+            padding: 12px 16px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            border-top: 1px solid #e8ecff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .btn-prev {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 14px;
+            background: #f1f5f9;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-prev:hover:not(:disabled) { background: #e2e8f0; }
+        .btn-prev:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-next {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 22px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+        }
+        .btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99,102,241,0.4); }
+        .btn-finish {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 22px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        }
+        .btn-finish:hover { transform: translateY(-1px); }
+        .page-counter-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        
+        /* ===== ЭКРАН РЕЗУЛЬТАТА ===== */
+        .result-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 24px 20px;
+            text-align: center;
+            min-height: 100%;
+        }
+        .result-score-ring {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            margin: 16px auto;
+        }
+        .result-score-ring svg { transform: rotate(-90deg); }
+        .result-score-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .result-percent {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            font-size: 2.2rem;
+            color: #1e1b4b;
+            line-height: 1;
+        }
+        .result-label { font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-top: 2px; }
+        .result-emoji { font-size: 3rem; animation: starBurst 0.5s ease both; }
+        .result-title { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.5rem; color: #1e1b4b; margin-top: 8px; }
+        .result-subtitle { font-size: 0.9rem; color: #64748b; margin-top: 4px; }
+        .result-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            max-width: 320px;
+            margin-top: 16px;
+        }
+        .result-stat {
+            background: white;
+            border-radius: 16px;
+            padding: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .result-stat-value { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.5rem; color: #1e1b4b; }
+        .result-stat-label { font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-top: 2px; }
+        .btn-save-result {
+            margin-top: 20px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 1rem;
+            padding: 14px 32px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(16,185,129,0.35);
+            transition: all 0.2s;
+            animation: popIn 0.5s 0.3s ease both;
+        }
+        .btn-save-result:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(16,185,129,0.4); }
+        
+        /* ===== КОНФЕТТИ ===== */
+        .confetti-piece {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            animation: confettiFall linear forwards;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        
+        /* ===== КОНСТРУКТОР СТРАНИЦЫ ===== */
+        .page-indicator { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; transition: all 0.2s; cursor: pointer; background: #e2e8f0; color: #64748b; }
+        .page-indicator.active { transform: scale(1.1); box-shadow: 0 0 0 3px #4f46e5; background: #4f46e5; color: white; }
+        
+        /* Результаты учеников */
+        .mentor-results-section { margin-top: 24px; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans pb-20">
@@ -117,7 +574,7 @@
     </div>
 </div>
 
-<!-- МОДАЛКИ -->
+<!-- МОДАЛКА: О ПЛАТФОРМЕ -->
 <div id="aboutModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
     <div class="bg-white rounded-2xl max-w-md w-full mx-4 overflow-hidden animate-scale-in">
         <div class="bg-white border-b px-5 py-4 flex justify-between items-center">
@@ -130,31 +587,59 @@
     </div>
 </div>
 
-<div id="feedbackModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-4xl h-[85vh] max-h-[700px] flex flex-col animate-scale-in">
-        <div class="bg-white border-b px-5 py-3 flex justify-end">
-            <button id="closeFeedbackBtn" class="text-gray-500 text-2xl hover:text-gray-700">&times;</button>
+<!-- МОДАЛКА: ОБРАТНАЯ СВЯЗЬ (ИСПРАВЛЕННАЯ) -->
+<div id="feedbackModal" class="hidden">
+    <div class="modal-inner">
+        <div class="modal-header">
+            <h2 class="font-bold text-lg">Обратная связь</h2>
+            <button id="closeFeedbackBtn" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
-        <div class="flex-1 overflow-auto p-0 feedback-iframe-container">
-            <iframe src="https://forms.yandex.ru/u/69ee23d1d0468856297480b1?iframe=1" style="width:100%; height:100%; border:none;" loading="lazy" title="Форма обратной связи"></iframe>
+        <div class="modal-body">
+            <iframe src="https://forms.yandex.ru/u/69ee23d1d0468856297480b1?iframe=1" loading="lazy" title="Форма обратной связи"></iframe>
         </div>
     </div>
 </div>
 
-<!-- ПОЛНОЭКРАННОЕ ОКНО ЗАДАНИЯ -->
-<div id="taskFullscreen" class="fixed inset-0 bg-white z-50 hidden flex flex-col">
-    <div class="sticky top-0 bg-white border-b px-4 py-3 flex justify-between items-center">
-        <button id="closeTaskBtn" class="text-gray-500 text-2xl">&times;</button>
-        <h2 id="fsTaskTitle" class="font-bold text-lg"></h2>
-        <div class="w-8"></div>
+<!-- ПОЛНОЭКРАННОЕ ОКНО ЗАДАНИЯ (НОВЫЙ ДИЗАЙН) -->
+<div id="taskFullscreen" class="hidden">
+    <!-- Шапка -->
+    <div class="task-fs-header">
+        <button id="closeTaskBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex-shrink-0">
+            <i class="fas fa-times"></i>
+        </button>
+        <h2 id="fsTaskTitle" class="task-fs-title"></h2>
+        <div class="w-9"></div>
     </div>
-    <div id="fsPagesContainer" class="flex justify-center gap-2 py-3 px-2 flex-wrap border-b bg-gray-50"></div>
-    <div id="fsPageContent" class="flex-1 overflow-auto p-6"></div>
-    <div class="border-t p-4 flex justify-between">
-        <button id="fsPrevPage" class="bg-gray-200 px-5 py-2 rounded-xl disabled:opacity-40"><i class="fas fa-arrow-left mr-2"></i>Назад</button>
-        <span id="fsPageCounter" class="text-sm text-gray-500 self-center"></span>
-        <button id="fsNextPage" class="bg-indigo-600 text-white px-5 py-2 rounded-xl">Далее</button>
-        <button id="fsFinishBtn" class="bg-green-600 text-white px-5 py-2 rounded-xl hidden">Завершить</button>
+    
+    <!-- Прогресс-бар -->
+    <div class="progress-bar-container">
+        <div class="progress-track">
+            <div class="progress-fill" id="fsProgressFill" style="width: 0%"></div>
+        </div>
+        <div class="progress-labels">
+            <span id="fsProgressLeft">Страница 1</span>
+            <span id="fsProgressRight">0%</span>
+        </div>
+    </div>
+    
+    <!-- Точки страниц -->
+    <div class="pages-dots" id="fsPagesContainer"></div>
+    
+    <!-- Контент -->
+    <div class="task-fs-content" id="fsPageContent"></div>
+    
+    <!-- Нижняя навигация -->
+    <div class="task-fs-footer">
+        <button id="fsPrevPage" class="btn-prev" disabled>
+            <i class="fas fa-arrow-left"></i> Назад
+        </button>
+        <span id="fsPageCounter" class="page-counter-label"></span>
+        <button id="fsNextPage" class="btn-next">
+            Далее <i class="fas fa-arrow-right"></i>
+        </button>
+        <button id="fsFinishBtn" class="btn-finish hidden">
+            <i class="fas fa-check"></i> Готово
+        </button>
     </div>
 </div>
 
@@ -168,41 +653,88 @@
     let completedTasksData = new Map();
     let mentorStudentsList = [];
     let teachersCache = new Map();
+    let isReviewModeGlobal = false;
+
+    /* ===== HELPERS ===== */
+    function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function isTaskExpired(deadline) { if (!deadline) return false; return new Date(deadline) < new Date(); }
+    function normalizePages(pages) { if (!pages) return []; if (Array.isArray(pages)) return pages; if (typeof pages === 'object') { const arr = []; for (let i = 0; i < Object.keys(pages).length; i++) if (pages[i]) arr.push(pages[i]); return arr; } return []; }
+    
+    function showToast(msg, isErr = false) {
+        let t = document.createElement('div'); t.className = 'toast-notify';
+        t.innerHTML = `<i class="fas ${isErr ? 'fa-exclamation-triangle' : 'fa-check-circle'} mr-2"></i>${msg}`;
+        t.style.background = isErr ? '#b91c1c' : '#1e293b';
+        document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
+    }
 
     async function getTeacherName(teacherId) {
         if (teachersCache.has(teacherId)) return teachersCache.get(teacherId);
         try { const doc = await db.collection("users").doc(teacherId).get(); const name = doc.exists ? (doc.data().displayName || doc.data().email?.split('@')[0] || "Наставник") : "Наставник"; teachersCache.set(teacherId, name); return name; } catch(e) { return "Наставник"; }
     }
 
-    function isTaskExpired(deadline) { if (!deadline) return false; return new Date(deadline) < new Date(); }
-
-    function showToast(msg, isErr = false) { let t = document.createElement('div'); t.className = 'toast-notify'; t.innerHTML = `<i class="fas ${isErr ? 'fa-exclamation-triangle' : 'fa-check-circle'} mr-2"></i>${msg}`; t.style.background = isErr ? '#b91c1c' : '#1e293b'; document.body.appendChild(t); setTimeout(() => t.remove(), 2800); }
-
-    function normalizePages(pages) { if (!pages) return []; if (Array.isArray(pages)) return pages; if (typeof pages === 'object') { const arr = []; for (let i = 0; i < Object.keys(pages).length; i++) if (pages[i]) arr.push(pages[i]); return arr; } return []; }
-
     async function getUserDisplayName(uid) { try { const doc = await db.collection("users").doc(uid).get(); return doc.exists ? (doc.data().displayName || doc.data().email?.split('@')[0] || "Простолюдин") : "Простолюдин"; } catch(e) { return "Простолюдин"; } }
 
     async function loadUserRole(uid) { try { const doc = await db.collection("users").doc(uid).get(); if (doc.exists) { userRole = doc.data().role; userClass = doc.data().class || ""; userDisplayName = doc.data().displayName || doc.data().email?.split('@')[0] || "Пользователь"; return true; } else { showToast("Роль не назначена", true); return false; } } catch(e) { showToast("Ошибка", true); return false; } }
 
+    /* ===== КОНФЕТТИ ===== */
+    function launchConfetti() {
+        const colors = ['#6366f1','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899'];
+        for (let i = 0; i < 60; i++) {
+            setTimeout(() => {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + 'vw';
+                piece.style.top = '-20px';
+                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.width = (Math.random() * 8 + 6) + 'px';
+                piece.style.height = (Math.random() * 8 + 6) + 'px';
+                piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                piece.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+                piece.style.animationDelay = (Math.random() * 0.5) + 's';
+                document.body.appendChild(piece);
+                setTimeout(() => piece.remove(), 3500);
+            }, i * 30);
+        }
+    }
+
+    /* ===== АВТОРИЗАЦИЯ ===== */
     auth.onAuthStateChanged(async (user) => {
         if (user) {
             currentUserObj = user;
             if (!(await loadUserRole(user.uid))) { auth.signOut(); return; }
-            if (userRole === "student") { const snap = await db.collection("results").where("studentId", "==", user.uid).get(); completedTasksData.clear(); snap.forEach(d => completedTasksData.set(d.data().taskId, d.data())); }
-            document.getElementById("authScreen").classList.add("hidden"); document.getElementById("mainApp").classList.remove("hidden");
-            document.getElementById("userDisplayName").innerText = userDisplayName; document.getElementById("profileName").innerText = userDisplayName; document.getElementById("profileEmail").innerText = user.email;
-            let roleDisplay = userRole === "mentor" ? "Наставник" : "Простолюдин";
-            document.getElementById("profileRole").innerText = roleDisplay; document.getElementById("profileClass").innerText = userClass || "—";
-            const initial = userDisplayName.charAt(0).toUpperCase(); document.getElementById("greetingAvatar").innerHTML = initial; document.getElementById("profileAvatar").innerHTML = initial;
-            const hour = new Date().getHours(); document.getElementById("greetingText").innerHTML = hour < 12 ? "Доброе утро" : (hour < 18 ? "Добрый день" : "Добрый вечер");
-            if (userRole === "mentor") { document.querySelectorAll(".mentor-only").forEach(el => el.classList.remove("hidden")); loadMyTasksForMentor(); } else { document.querySelectorAll(".mentor-only").forEach(el => el.classList.add("hidden")); }
+            if (userRole === "student") {
+                const snap = await db.collection("results").where("studentId", "==", user.uid).get();
+                completedTasksData.clear(); snap.forEach(d => completedTasksData.set(d.data().taskId, d.data()));
+            }
+            document.getElementById("authScreen").classList.add("hidden");
+            document.getElementById("mainApp").classList.remove("hidden");
+            document.getElementById("userDisplayName").innerText = userDisplayName;
+            document.getElementById("profileName").innerText = userDisplayName;
+            document.getElementById("profileEmail").innerText = user.email;
+            document.getElementById("profileRole").innerText = userRole === "mentor" ? "Наставник" : "Простолюдин";
+            document.getElementById("profileClass").innerText = userClass || "—";
+            const initial = userDisplayName.charAt(0).toUpperCase();
+            document.getElementById("greetingAvatar").innerHTML = initial;
+            document.getElementById("profileAvatar").innerHTML = initial;
+            const hour = new Date().getHours();
+            document.getElementById("greetingText").innerHTML = hour < 12 ? "Доброе утро" : (hour < 18 ? "Добрый день" : "Добрый вечер");
+            if (userRole === "mentor") { document.querySelectorAll(".mentor-only").forEach(el => el.classList.remove("hidden")); loadMyTasksForMentor(); }
+            else { document.querySelectorAll(".mentor-only").forEach(el => el.classList.add("hidden")); }
             switchNav("tasks"); loadTasks();
-        } else { document.getElementById("authScreen").classList.remove("hidden"); document.getElementById("mainApp").classList.add("hidden"); }
+        } else {
+            document.getElementById("authScreen").classList.remove("hidden");
+            document.getElementById("mainApp").classList.add("hidden");
+        }
     });
 
-    document.getElementById("loginForm").addEventListener("submit", async (e) => { e.preventDefault(); try { await auth.signInWithEmailAndPassword(document.getElementById("loginEmail").value, document.getElementById("loginPassword").value); showToast("Добро пожаловать!"); } catch(err) { document.getElementById("loginError").classList.remove("hidden"); document.getElementById("loginError").innerText = "Неверный email или пароль"; } });
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try { await auth.signInWithEmailAndPassword(document.getElementById("loginEmail").value, document.getElementById("loginPassword").value); showToast("Добро пожаловать!"); }
+        catch(err) { document.getElementById("loginError").classList.remove("hidden"); document.getElementById("loginError").innerText = "Неверный email или пароль"; }
+    });
     document.getElementById("logoutBtnBottom")?.addEventListener("click", () => auth.signOut());
 
+    /* ===== МОДАЛКИ ===== */
     const aboutModal = document.getElementById("aboutModal");
     const feedbackModal = document.getElementById("feedbackModal");
     document.getElementById("aboutPlatformBtn")?.addEventListener("click", () => aboutModal.classList.remove("hidden"));
@@ -210,8 +742,11 @@
     document.getElementById("feedbackBtn")?.addEventListener("click", () => feedbackModal.classList.remove("hidden"));
     document.getElementById("closeFeedbackBtn")?.addEventListener("click", () => feedbackModal.classList.add("hidden"));
     document.getElementById("supportLink")?.addEventListener("click", () => feedbackModal.classList.remove("hidden"));
-    [aboutModal, feedbackModal].forEach(modal => { if (modal) modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("hidden"); }); });
+    
+    aboutModal?.addEventListener("click", (e) => { if (e.target === aboutModal) aboutModal.classList.add("hidden"); });
+    feedbackModal?.addEventListener("click", (e) => { if (e.target === feedbackModal) feedbackModal.classList.add("hidden"); });
 
+    /* ===== НАВИГАЦИЯ ===== */
     function switchNav(tab) {
         document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
         document.getElementById(`${tab}Panel`).classList.remove("hidden");
@@ -222,6 +757,7 @@
     }
     document.querySelectorAll("[data-nav]").forEach(btn => btn.addEventListener("click", () => switchNav(btn.dataset.nav)));
 
+    /* ===== СПИСОК ЗАДАНИЙ ===== */
     async function loadTasks() {
         const container = document.getElementById("tasksListContainer");
         container.innerHTML = '<div class="text-center p-4">Загрузка...</div>';
@@ -232,7 +768,7 @@
             if (userRole === "student" && d.targetClass !== userClass) continue;
             tasks.push({ id: doc.id, ...d });
         }
-        if (tasks.length === 0) { container.innerHTML = '<div class="text-center text-gray-400">Нет заданий</div>'; return; }
+        if (tasks.length === 0) { container.innerHTML = '<div class="text-center text-gray-400 py-10">Нет заданий</div>'; return; }
         container.innerHTML = "";
         for (const t of tasks) {
             const completed = completedTasksData.get(t.id);
@@ -241,41 +777,48 @@
             const teacherName = await getTeacherName(t.createdBy);
             const card = document.createElement("div");
             card.className = `bg-white rounded-xl shadow p-4 transition-all transform hover:-translate-y-1 hover:shadow-lg ${expired ? 'expired-task' : ''}`;
-            card.innerHTML = `<div class="font-bold text-lg">${escapeHtml(t.title)}</div>
+            card.innerHTML = `
+                <div class="font-bold text-lg">${escapeHtml(t.title)}</div>
                 <div class="text-sm text-gray-500 mt-1">${userRole === "student" ? `От: ${teacherName} • ` : ''}Класс: ${t.targetClass} • Страниц: ${pagesCount}${t.deadline ? ` • До: ${new Date(t.deadline).toLocaleString()}` : ''}</div>
                 ${expired ? '<div class="text-red-500 text-xs mt-1 font-semibold"><i class="fas fa-clock"></i> Срок истёк</div>' : ''}
                 ${completed ? `<div class="text-green-600 text-xs mt-1 font-semibold"><i class="fas fa-check-circle"></i> Пройдено: ${completed.earnedPoints}/${completed.totalPoints} (${completed.percent}%)</div>` : ''}
-                <button data-id="${t.id}" class="task-start mt-3 font-semibold py-1.5 px-3 rounded-xl w-full transition-all bg-indigo-50 text-indigo-700 hover:bg-indigo-100">${userRole === "student" ? (completed ? "Просмотреть ответы" : "Начать") : "Просмотреть"}</button>`;
+                <button data-id="${t.id}" class="task-start mt-3 font-semibold py-1.5 px-3 rounded-xl w-full transition-all bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                    ${userRole === "student" ? (completed ? "Просмотреть ответы" : "Начать") : "Просмотреть"}
+                </button>`;
             container.appendChild(card);
         }
-        document.querySelectorAll(".task-start").forEach(btn => btn.addEventListener("click", async (e) => {
+        document.querySelectorAll(".task-start").forEach(btn => btn.addEventListener("click", async () => {
             const id = btn.dataset.id;
             const snap = await db.collection("tasks").doc(id).get();
             if (snap.exists) {
                 currentTask = { id: snap.id, ...snap.data() };
                 if (userRole === "student" && completedTasksData.has(id)) openStudentReview(id);
                 else if (userRole === "student") openTaskForSolve();
-                else if (userRole === "mentor") openTaskForMentor();
+                else openTaskForMentor();
             }
         }));
     }
 
-    async function openTaskForSolve() { 
-        currentPagesArray = normalizePages(currentTask.pages); 
-        currentPageAnswers = currentPagesArray.map(() => ({})); 
-        currentPage = 0; 
-        renderFullscreenTask(false); 
+    /* ===== ОТКРЫТИЕ ЗАДАНИЯ ===== */
+    async function openTaskForSolve() {
+        currentPagesArray = normalizePages(currentTask.pages);
+        currentPageAnswers = currentPagesArray.map(() => ({}));
+        currentPage = 0;
+        isReviewModeGlobal = false;
+        renderFullscreenTask(false);
     }
-    async function openStudentReview(taskId) { 
-        const saved = completedTasksData.get(taskId); 
-        if (saved && saved.studentAnswers) { 
-            currentPagesArray = normalizePages(currentTask.pages); 
-            currentPageAnswers = saved.studentAnswers; 
-            currentPage = 0; 
-            renderFullscreenTask(true); 
-        } else { showToast("Не удалось загрузить ответы", true); } 
+
+    async function openStudentReview(taskId) {
+        const saved = completedTasksData.get(taskId);
+        if (saved && saved.studentAnswers) {
+            currentPagesArray = normalizePages(currentTask.pages);
+            currentPageAnswers = saved.studentAnswers;
+            currentPage = 0;
+            isReviewModeGlobal = true;
+            renderFullscreenTask(true);
+        } else { showToast("Не удалось загрузить ответы", true); }
     }
-    
+
     async function openTaskForMentor() {
         currentPagesArray = normalizePages(currentTask.pages);
         const resultsSnap = await db.collection("results").where("taskId", "==", currentTask.id).get();
@@ -283,113 +826,125 @@
         for (const doc of resultsSnap.docs) {
             const data = doc.data();
             const studentName = await getUserDisplayName(data.studentId);
-            mentorStudentsList.push({
-                id: doc.id,
-                studentId: data.studentId,
-                email: data.studentEmail,
-                displayName: studentName,
-                answers: data.studentAnswers,
-                earned: data.earnedPoints,
-                total: data.totalPoints,
-                percent: data.percent
-            });
+            mentorStudentsList.push({ id: doc.id, studentId: data.studentId, email: data.studentEmail, displayName: studentName, answers: data.studentAnswers, earned: data.earnedPoints, total: data.totalPoints, percent: data.percent });
         }
         currentPage = 0;
+        isReviewModeGlobal = true;
         renderFullscreenTask(true);
+    }
+
+    /* ===== РЕНДЕР ЗАДАНИЯ — НОВЫЙ ДИЗАЙН ===== */
+    function calcProgress() {
+        let total = 0, answered = 0;
+        currentPagesArray.forEach((page, pi) => {
+            page.forEach((el, ei) => {
+                if (el.type === 'text') return;
+                total++;
+                const ans = (currentPageAnswers[pi] || {})[ei];
+                if (ans && (ans.selected !== undefined || (ans.value && ans.value.trim()))) answered++;
+            });
+        });
+        return total > 0 ? Math.round((answered / total) * 100) : 0;
     }
 
     function renderFullscreenTask(isReviewMode) {
         const modal = document.getElementById("taskFullscreen");
         document.getElementById("fsTaskTitle").innerText = currentTask.title;
+        
+        // Прогресс
+        const progressPct = isReviewMode ? 100 : calcProgress();
+        document.getElementById("fsProgressFill").style.width = progressPct + '%';
+        document.getElementById("fsProgressLeft").innerText = `Страница ${currentPage + 1} из ${currentPagesArray.length}`;
+        document.getElementById("fsProgressRight").innerText = isReviewMode ? 'Просмотр' : `${progressPct}%`;
+
+        // Точки страниц
         const pagesContainer = document.getElementById("fsPagesContainer");
         pagesContainer.innerHTML = "";
         for (let i = 0; i < currentPagesArray.length; i++) {
-            const div = document.createElement("div");
-            div.className = `page-indicator ${i === currentPage ? 'active' : ''}`;
-            div.innerText = (i + 1).toString();
-            div.onclick = () => { if (!isReviewMode) { currentPage = i; renderFullscreenTask(isReviewMode); } };
-            pagesContainer.appendChild(div);
+            const dot = document.createElement("div");
+            let cls = 'page-dot';
+            if (i === currentPage) cls += ' active';
+            else if (isReviewMode || (currentPageAnswers[i] && Object.keys(currentPageAnswers[i]).length > 0)) cls += ' completed';
+            dot.className = cls;
+            dot.textContent = i + 1;
+            if (isReviewMode) {
+                dot.style.cursor = 'pointer';
+                dot.onclick = () => { currentPage = i; renderFullscreenTask(isReviewMode); };
+            }
+            pagesContainer.appendChild(dot);
         }
         
+        // Контент
         const content = document.getElementById("fsPageContent");
+        
+        // Показываем экран результата на последней странице
+        const isLastPage = currentPage === currentPagesArray.length - 1;
+        const isResultScreen = !isReviewMode && userRole === "student" && isLastPage && 
+                               currentPagesArray[currentPage].every(el => el.type === 'text' || (currentPageAnswers[currentPage] || {})[currentPagesArray[currentPage].indexOf(el)] !== undefined);
+        
+        // Рендер элементов
         const pageElements = currentPagesArray[currentPage] || [];
-        let html = `<div class="mb-4"><h3 class="text-lg font-bold">Страница ${currentPage + 1}</h3><p class="text-sm text-gray-500">${pageElements.length} заданий</p></div>`;
+        const htmlParts = [];
+        
         for (let i = 0; i < pageElements.length; i++) {
-            const el = pageElements[i]; const ans = (currentPageAnswers[currentPage] || {})[i];
-            html += `<div class="task-element-card" data-elem-index="${i}"><div class="font-semibold mb-2">Задание ${i + 1} <span class="text-xs text-gray-400">(${el.type === 'text' ? 'Инфо' : (el.type === 'choice' ? 'Выбор' : 'Текст')}, баллов: ${el.points})</span></div>`;
-            if (el.imageBase64) html += `<img src="${el.imageBase64}" class="modal-photo my-2 max-h-32 rounded cursor-pointer" onclick="window.showImagePopup('${el.imageBase64}')">`;
-            if (el.type === 'text') html += `<div class="bg-gray-100 p-4 rounded-xl">${escapeHtml(el.content) || "Информация"}</div>`;
-            else if (el.type === 'choice') {
-                html += `<div class="font-medium mb-2">${escapeHtml(el.content)}</div><div class="space-y-2">`;
-                el.options.forEach((opt, idx) => {
-                    const selected = (ans && ans.selected === idx);
-                    const isCorrect = el.correctAnswer && el.correctAnswer.includes(idx);
-                    let extraClass = "";
-                    if (isReviewMode && selected) extraClass = selected ? (isCorrect ? 'correct-answer' : 'wrong-answer') : '';
-                    if (isReviewMode && !selected && isCorrect) extraClass = 'correct-answer';
-                    html += `<div class="quiz-option p-3 rounded-xl flex items-center gap-3 ${selected ? 'selected' : ''} ${extraClass}" data-opt="${idx}" style="${isReviewMode ? 'cursor:default' : 'cursor:pointer'}">
-                        <div class="w-5 h-5 rounded-full border ${selected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}"></div>
-                        <span>${escapeHtml(opt)} ${isReviewMode && isCorrect && !selected ? ' ✓ (правильный)' : ''}</span>
-                    </div>`;
-                });
-                html += `</div><div class="text-xs text-gray-400 mt-2">Баллов: ${el.points}</div>`;
-            }
-            else if (el.type === 'textarea') {
-                const val = ans ? ans.value : '';
-                const disabledAttr = isReviewMode ? 'readonly disabled' : '';
-                html += `<div class="font-medium mb-2">${escapeHtml(el.content)}</div><textarea class="textarea-ans w-full border rounded-xl p-3 mt-2" rows="3" placeholder="Напишите ответ..." data-elem-idx="${i}" ${disabledAttr}>${escapeHtml(val)}</textarea><div class="text-xs text-gray-400 mt-1">Баллов: ${el.points}</div>`;
-            }
-            html += `</div>`;
+            const el = pageElements[i];
+            const ans = (currentPageAnswers[currentPage] || {})[i];
+            htmlParts.push(renderElement(el, i, ans, isReviewMode));
         }
         
-        if (!isReviewMode && currentPage === currentPagesArray.length - 1 && userRole === "student") {
-            let totalPoints = 0, earnedPoints = 0;
-            for (let p = 0; p < currentPagesArray.length; p++) {
-                const page = currentPagesArray[p]; const pageAns = currentPageAnswers[p] || {};
-                for (let i = 0; i < page.length; i++) {
-                    const el = page[i]; if (el.type === 'text') continue;
-                    totalPoints += el.points; const ans = pageAns[i];
-                    if (el.type === 'choice' && ans && ans.selected !== undefined && el.correctAnswer && el.correctAnswer.includes(ans.selected)) earnedPoints += el.points;
-                    else if (el.type === 'textarea' && ans && ans.value && ans.value.trim().length > 0) earnedPoints += el.points;
-                }
-            }
-            const percent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
-            html = `<div class="text-center py-10">
-                <div class="text-6xl mb-4">🎉</div>
-                <h2 class="text-2xl font-bold mb-2">Задание завершено!</h2>
-                <div class="bg-indigo-50 rounded-xl p-6 max-w-md mx-auto">
-                    <p class="text-lg">Правильно выполнено: <span class="font-bold text-green-600">${earnedPoints}</span> из <span class="font-bold">${totalPoints}</span></p>
-                    <p class="text-3xl font-bold mt-2">${percent}%</p>
-                </div>
-                <button id="finalSaveResultBtn" class="mt-6 bg-green-600 text-white px-6 py-2 rounded-xl font-bold">Сохранить результат</button>
-            </div>`;
+        // Кнопка завершения (если это последняя страница для ученика)
+        if (!isReviewMode && userRole === "student" && isLastPage) {
+            const totalPts = getTotalPoints(), earnedPts = getEarnedPoints();
+            const pct = totalPts > 0 ? Math.round((earnedPts / totalPts) * 100) : 0;
+            htmlParts.push(renderResultScreen(earnedPts, totalPts, pct));
         }
         
-        if (isReviewMode && userRole === "mentor" && currentPage === currentPagesArray.length - 1) {
-            html += `<div class="mt-8 border-t pt-6"><h3 class="text-xl font-bold mb-4">📊 Результаты учеников</h3>`;
-            if (mentorStudentsList.length === 0) html += `<p class="text-gray-500">Пока никто не прошёл это задание</p>`;
-            else {
-                html += `<div class="space-y-2">`;
-                mentorStudentsList.forEach((student, idx) => {
-                    html += `<div class="student-result-row rounded-xl flex justify-between items-center" data-student-idx="${idx}">
-                        <div><span class="font-medium">${escapeHtml(student.displayName)}</span><div class="text-sm text-gray-500">${student.earned}/${student.total} (${student.percent}%)</div></div>
-                        <i class="fas fa-chevron-right text-gray-400"></i>
-                    </div>`;
-                });
-                html += `</div>`;
-            }
-            html += `</div>`;
+        // Результаты учеников (для наставника, последняя страница)
+        if (isReviewMode && userRole === "mentor" && isLastPage) {
+            htmlParts.push(renderMentorResults());
         }
         
-        content.innerHTML = html;
+        content.innerHTML = htmlParts.join('');
+        content.scrollTop = 0;
         
+        // Вешаем события
         if (!isReviewMode && userRole === "student") {
-            document.querySelectorAll(".quiz-option").forEach(opt => { opt.addEventListener("click", () => { const selectedIdx = parseInt(opt.dataset.opt); const taskCard = opt.closest('.task-element-card'); const elemIdx = parseInt(taskCard.dataset.elemIndex); if (!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {}; currentPageAnswers[currentPage][elemIdx] = { type: 'choice', selected: selectedIdx }; renderFullscreenTask(false); }); });
-            document.querySelectorAll(".textarea-ans").forEach(ta => { ta.addEventListener("input", (e) => { const elemIdx = parseInt(ta.dataset.elemIdx); if (!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {}; currentPageAnswers[currentPage][elemIdx] = { type: 'textarea', value: e.target.value }; }); });
+            // Выбор варианта
+            content.querySelectorAll('.choice-option').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    const selectedIdx = parseInt(opt.dataset.opt);
+                    const elemIdx = parseInt(opt.dataset.elem);
+                    if (!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {};
+                    currentPageAnswers[currentPage][elemIdx] = { type: 'choice', selected: selectedIdx };
+                    // Обновляем только эту группу опций (без полного перерендера)
+                    updateChoiceGroup(content, elemIdx, selectedIdx, currentPagesArray[currentPage][elemIdx], isReviewMode);
+                    // Обновляем прогресс
+                    const pct = calcProgress();
+                    document.getElementById("fsProgressFill").style.width = pct + '%';
+                    document.getElementById("fsProgressRight").innerText = pct + '%';
+                });
+            });
+            // Текстовый ответ
+            content.querySelectorAll('.textarea-ans').forEach(ta => {
+                ta.addEventListener("input", (e) => {
+                    const elemIdx = parseInt(ta.dataset.elemIdx);
+                    if (!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {};
+                    currentPageAnswers[currentPage][elemIdx] = { type: 'textarea', value: e.target.value };
+                    const pct = calcProgress();
+                    document.getElementById("fsProgressFill").style.width = pct + '%';
+                    document.getElementById("fsProgressRight").innerText = pct + '%';
+                });
+            });
         }
         
-        if (userRole === "mentor" && isReviewMode) {
-            document.querySelectorAll('.student-result-row').forEach(row => {
+        // Клик по фото
+        content.querySelectorAll('.modal-photo').forEach(img => {
+            img.addEventListener('click', () => window.showImagePopup(img.src));
+        });
+        
+        // Просмотр ответов ученика (для наставника)
+        if (isReviewMode && userRole === "mentor") {
+            content.querySelectorAll('.student-result-row').forEach(row => {
                 row.addEventListener('click', () => {
                     const idx = parseInt(row.dataset.studentIdx);
                     const student = mentorStudentsList[idx];
@@ -397,65 +952,240 @@
                         currentPageAnswers = student.answers;
                         currentPage = 0;
                         renderFullscreenTask(true);
-                        showToast(`Просмотр ответов: ${student.displayName}`, false);
+                        showToast(`Просмотр: ${student.displayName}`);
                     }
                 });
             });
         }
         
-        const prevBtn = document.getElementById("fsPrevPage"), nextBtn = document.getElementById("fsNextPage"), finishBtn = document.getElementById("fsFinishBtn"), pageCounter = document.getElementById("fsPageCounter");
-        prevBtn.disabled = (currentPage === 0); 
-        prevBtn.onclick = () => { if (currentPage > 0) { currentPage--; renderFullscreenTask(isReviewMode); } };
+        // Сохранение результата
+        const saveBtn = content.querySelector('#finalSaveResultBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', saveResult);
+        }
+        
+        // Кнопки навигации
+        const prevBtn = document.getElementById("fsPrevPage");
+        const nextBtn = document.getElementById("fsNextPage");
+        const finishBtn = document.getElementById("fsFinishBtn");
+        const pageCounter = document.getElementById("fsPageCounter");
+        
+        prevBtn.disabled = (currentPage === 0);
         pageCounter.innerText = `${currentPage + 1} / ${currentPagesArray.length}`;
         
-        if (currentPage === currentPagesArray.length - 1) {
-            nextBtn.classList.add("hidden"); finishBtn.classList.remove("hidden");
-            if (userRole === "student" && !isReviewMode) finishBtn.onclick = () => { renderFullscreenTask(false); };
-            else finishBtn.onclick = () => modal.classList.add("hidden");
+        if (isLastPage) {
+            nextBtn.classList.add("hidden");
+            finishBtn.classList.remove("hidden");
+            if (userRole === "student" && !isReviewMode) {
+                finishBtn.onclick = null; // кнопка "Готово" на последней странице — ничего не делает (результат уже на экране)
+                finishBtn.classList.add("hidden"); // прячем, т.к. есть кнопка "Сохранить" в контенте
+            } else {
+                finishBtn.onclick = () => modal.classList.add("hidden");
+            }
         } else {
-            nextBtn.classList.remove("hidden"); finishBtn.classList.add("hidden");
-            nextBtn.onclick = () => { if (currentPage < currentPagesArray.length - 1) { currentPage++; renderFullscreenTask(isReviewMode); } };
+            nextBtn.classList.remove("hidden");
+            finishBtn.classList.add("hidden");
+            nextBtn.onclick = () => { currentPage++; renderFullscreenTask(isReviewMode); };
         }
         
-        const saveBtn = document.getElementById("finalSaveResultBtn");
-        if (saveBtn) {
-            saveBtn.onclick = async () => {
-                let totalPoints = 0, earnedPoints = 0;
-                for (let p = 0; p < currentPagesArray.length; p++) {
-                    const page = currentPagesArray[p]; const pageAns = currentPageAnswers[p] || {};
-                    for (let i = 0; i < page.length; i++) {
-                        const el = page[i]; if (el.type === 'text') continue;
-                        totalPoints += el.points; const ans = pageAns[i];
-                        if (el.type === 'choice' && ans && ans.selected !== undefined && el.correctAnswer && el.correctAnswer.includes(ans.selected)) earnedPoints += el.points;
-                        else if (el.type === 'textarea' && ans && ans.value && ans.value.trim().length > 0) earnedPoints += el.points;
-                    }
-                }
-                const percent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
-                const studentAnswersCopy = JSON.parse(JSON.stringify(currentPageAnswers));
-                await db.collection("results").add({ taskId: currentTask.id, taskTitle: currentTask.title, studentId: currentUserObj.uid, studentEmail: currentUserObj.email, earnedPoints, totalPoints, percent, studentAnswers: studentAnswersCopy, completedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                const snap = await db.collection("results").where("studentId", "==", currentUserObj.uid).get();
-                completedTasksData.clear(); snap.forEach(d => completedTasksData.set(d.data().taskId, d.data()));
-                showToast(`Результат сохранён! ${earnedPoints}/${totalPoints} (${percent}%)`);
-                modal.classList.add("hidden");
-                loadTasks();
-            };
-        }
-        
+        prevBtn.onclick = () => { if (currentPage > 0) { currentPage--; renderFullscreenTask(isReviewMode); } };
         document.getElementById("closeTaskBtn").onclick = () => modal.classList.add("hidden");
         modal.classList.remove("hidden");
     }
 
-    window.showImagePopup = (src) => { const popup = document.createElement('div'); popup.className = 'image-popup'; popup.innerHTML = `<img src="${src}"><div class="absolute top-5 right-5 text-white text-3xl cursor-pointer">&times;</div>`; popup.addEventListener('click', (e) => { if (e.target === popup || e.target.tagName === 'DIV') popup.remove(); }); document.body.appendChild(popup); };
+    function renderElement(el, i, ans, isReviewMode) {
+        const typeLabels = { text: '📘 Информация', choice: '❓ Вопрос', textarea: '✏️ Открытый вопрос' };
+        const pointsLabel = el.type !== 'text' ? ` • ${el.points} ${pluralPoints(el.points)}` : '';
+        
+        let inner = '';
+        
+        if (el.imageBase64) {
+            inner += `<img src="${el.imageBase64}" class="modal-photo rounded-2xl max-h-48 mb-3 cursor-pointer w-full object-cover" style="max-height:200px;object-fit:contain;">`;
+        }
+        
+        if (el.type === 'text') {
+            inner += `<div class="info-block">${escapeHtml(el.content)}</div>`;
+        }
+        else if (el.type === 'choice') {
+            inner += `<div class="elem-question">${escapeHtml(el.content)}</div><div class="choices-group" data-elem="${i}">`;
+            el.options.forEach((opt, idx) => {
+                const selected = ans && ans.selected === idx;
+                const isCorrect = el.correctAnswer && el.correctAnswer.includes(idx);
+                let extraClass = '';
+                let icon = '';
+                if (isReviewMode) {
+                    if (selected && isCorrect) { extraClass = 'correct-opt'; icon = '✅'; }
+                    else if (selected && !isCorrect) { extraClass = 'wrong-opt'; icon = '❌'; }
+                    else if (!selected && isCorrect) { extraClass = 'show-correct'; icon = '✓'; }
+                } else {
+                    if (selected) extraClass = 'selected';
+                }
+                inner += `<div class="choice-option ${extraClass}" data-opt="${idx}" data-elem="${i}" style="${isReviewMode ? 'cursor:default;' : ''}">
+                    <div class="choice-option-radio"><div class="choice-option-radio-dot"></div></div>
+                    <span class="choice-option-text">${escapeHtml(opt)}${isReviewMode && !selected && isCorrect ? ' <span style="font-size:0.75rem;color:#059669;font-weight:700;">(правильный)</span>' : ''}</span>
+                    ${icon ? `<span class="choice-option-icon">${icon}</span>` : ''}
+                </div>`;
+            });
+            inner += `</div>`;
+            // Обратная связь в режиме просмотра
+            if (isReviewMode && ans && ans.selected !== undefined) {
+                const isCorrect = el.correctAnswer && el.correctAnswer.includes(ans.selected);
+                inner += `<div class="answer-feedback ${isCorrect ? 'correct' : 'wrong'}">
+                    ${isCorrect ? '🎉 Верно!' : '❌ Неверно'}
+                    ${!isCorrect && el.correctAnswer ? ` — правильный: «${escapeHtml(el.options[el.correctAnswer[0]])}»` : ''}
+                </div>`;
+            }
+        }
+        else if (el.type === 'textarea') {
+            const val = ans ? ans.value : '';
+            inner += `<div class="elem-question">${escapeHtml(el.content)}</div>
+                <textarea class="textarea-ans" rows="3" placeholder="Напишите ответ..." data-elem-idx="${i}" ${isReviewMode ? 'readonly disabled' : ''}>${escapeHtml(val)}</textarea>`;
+            if (isReviewMode && val) {
+                inner += `<div class="answer-feedback partial">📝 Ответ принят</div>`;
+            }
+        }
+        
+        return `<div class="elem-card" data-elem-index="${i}">
+            <div class="elem-badge">${typeLabels[el.type] || el.type}${pointsLabel}</div>
+            ${inner}
+        </div>`;
+    }
 
-    // КОНСТРУКТОР — переписан без перерендера при вводе текста
+    function updateChoiceGroup(container, elemIdx, selectedIdx, el, isReviewMode) {
+        const group = container.querySelector(`.choices-group[data-elem="${elemIdx}"]`);
+        if (!group) return;
+        group.querySelectorAll('.choice-option').forEach(opt => {
+            const idx = parseInt(opt.dataset.opt);
+            opt.classList.remove('selected', 'correct-opt', 'wrong-opt', 'show-correct');
+            if (idx === selectedIdx) opt.classList.add('selected');
+        });
+    }
+
+    function renderResultScreen(earned, total, pct) {
+        const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '🎉' : pct >= 40 ? '👍' : '💪';
+        const msg = pct >= 80 ? 'Отличный результат!' : pct >= 60 ? 'Хорошая работа!' : pct >= 40 ? 'Неплохо, можно лучше!' : 'Попробуй ещё раз!';
+        const circumference = 2 * Math.PI * 54;
+        const offset = circumference - (pct / 100) * circumference;
+        const ringColor = pct >= 80 ? '#10b981' : pct >= 60 ? '#6366f1' : pct >= 40 ? '#f59e0b' : '#ef4444';
+        
+        return `<div class="result-screen animate-fade-slide-up">
+            <div class="result-emoji">${emoji}</div>
+            <h2 class="result-title">${msg}</h2>
+            <p class="result-subtitle">Задание завершено</p>
+            <div class="result-score-ring">
+                <svg width="140" height="140" viewBox="0 0 140 140">
+                    <circle cx="70" cy="70" r="54" fill="none" stroke="#e8ecff" stroke-width="10"/>
+                    <circle cx="70" cy="70" r="54" fill="none" stroke="${ringColor}" stroke-width="10" 
+                        stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                        stroke-linecap="round" style="transition: stroke-dashoffset 1s ease;"/>
+                </svg>
+                <div class="result-score-text">
+                    <span class="result-percent">${pct}%</span>
+                    <span class="result-label">результат</span>
+                </div>
+            </div>
+            <div class="result-stats">
+                <div class="result-stat">
+                    <div class="result-stat-value" style="color:#10b981">${earned}</div>
+                    <div class="result-stat-label">баллов набрано</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-value">${total}</div>
+                    <div class="result-stat-label">всего баллов</div>
+                </div>
+            </div>
+            <button id="finalSaveResultBtn" class="btn-save-result">
+                <i class="fas fa-save mr-2"></i> Сохранить результат
+            </button>
+        </div>`;
+    }
+
+    function renderMentorResults() {
+        let html = `<div class="elem-card mentor-results-section">
+            <div class="elem-badge">📊 Результаты учеников</div>`;
+        if (mentorStudentsList.length === 0) {
+            html += `<p class="text-gray-400 text-center py-4">Пока никто не прошёл это задание</p>`;
+        } else {
+            html += `<div class="space-y-2 mt-2">`;
+            mentorStudentsList.forEach((s, idx) => {
+                const pctColor = s.percent >= 80 ? 'text-green-600' : s.percent >= 50 ? 'text-indigo-600' : 'text-orange-500';
+                html += `<div class="student-result-row rounded-xl flex justify-between items-center px-3 py-3" data-student-idx="${idx}">
+                    <div>
+                        <div class="font-semibold text-sm">${escapeHtml(s.displayName)}</div>
+                        <div class="text-xs text-gray-400">${s.earned}/${s.total} баллов</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold ${pctColor}">${s.percent}%</span>
+                        <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+        html += `</div>`;
+        return html;
+    }
+
+    function getTotalPoints() {
+        let total = 0;
+        currentPagesArray.forEach(page => page.forEach(el => { if (el.type !== 'text') total += el.points; }));
+        return total;
+    }
+
+    function getEarnedPoints() {
+        let earned = 0;
+        currentPagesArray.forEach((page, pi) => {
+            const pageAns = currentPageAnswers[pi] || {};
+            page.forEach((el, ei) => {
+                if (el.type === 'text') return;
+                const ans = pageAns[ei];
+                if (el.type === 'choice' && ans && ans.selected !== undefined && el.correctAnswer && el.correctAnswer.includes(ans.selected)) earned += el.points;
+                else if (el.type === 'textarea' && ans && ans.value && ans.value.trim().length > 0) earned += el.points;
+            });
+        });
+        return earned;
+    }
+
+    function pluralPoints(n) {
+        if (n === 1) return 'балл'; if (n >= 2 && n <= 4) return 'балла'; return 'баллов';
+    }
+
+    async function saveResult() {
+        const totalPoints = getTotalPoints(), earnedPoints = getEarnedPoints();
+        const percent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+        const studentAnswersCopy = JSON.parse(JSON.stringify(currentPageAnswers));
+        try {
+            await db.collection("results").add({
+                taskId: currentTask.id, taskTitle: currentTask.title,
+                studentId: currentUserObj.uid, studentEmail: currentUserObj.email,
+                earnedPoints, totalPoints, percent, studentAnswers: studentAnswersCopy,
+                completedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            const snap = await db.collection("results").where("studentId", "==", currentUserObj.uid).get();
+            completedTasksData.clear(); snap.forEach(d => completedTasksData.set(d.data().taskId, d.data()));
+            showToast(`Сохранено! ${earnedPoints}/${totalPoints} (${percent}%)`);
+            if (percent >= 60) launchConfetti();
+            document.getElementById("taskFullscreen").classList.add("hidden");
+            loadTasks();
+        } catch(err) { showToast("Ошибка: " + err.message, true); }
+    }
+
+    window.showImagePopup = (src) => {
+        const popup = document.createElement('div'); popup.className = 'image-popup';
+        popup.innerHTML = `<img src="${src}">`;
+        popup.addEventListener('click', () => popup.remove());
+        document.body.appendChild(popup);
+    };
+
+    /* ===== КОНСТРУКТОР ===== */
     let pagesStore = [[]];
-    
+
     function renderConstructorUI() {
-        const container = document.getElementById("pagesContainer"); 
+        const container = document.getElementById("pagesContainer");
         if (!container) return;
         container.innerHTML = "";
         pagesStore.forEach((page, pageIdx) => {
-            const pageDiv = document.createElement("div"); 
+            const pageDiv = document.createElement("div");
             pageDiv.className = "border-2 border-indigo-200 rounded-xl p-4 bg-white mb-4";
             pageDiv.innerHTML = `<div class="flex justify-between items-center mb-3"><span class="font-bold text-indigo-700">Страница ${pageIdx + 1}</span><button class="delete-page text-red-500 text-sm">Удалить страницу</button></div>
             <div id="page-${pageIdx}-elements" class="space-y-3 mb-3"></div>
@@ -465,197 +1195,110 @@
                 <button class="add-elem-btn bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-sm" data-type="textarea"><i class="fas fa-edit mr-1"></i> Свободный ответ</button>
             </div>`;
             container.appendChild(pageDiv);
-            
             const elementsContainer = pageDiv.querySelector(`#page-${pageIdx}-elements`);
-            
+
             function renderElements() {
                 elementsContainer.innerHTML = "";
                 pagesStore[pageIdx].forEach((el, elemIdx) => {
-                    const elemCard = document.createElement("div"); 
+                    const elemCard = document.createElement("div");
                     elemCard.className = "bg-gray-50 rounded-lg p-3 border mb-3";
                     elemCard.innerHTML = `
                         <div class="flex justify-between items-center mb-2">
                             <span class="font-medium">${el.type === 'text' ? '📄 Текст' : (el.type === 'choice' ? '✓ Выбор ответа' : '✏️ Свободный ответ')}</span>
                             <button class="delete-elem text-red-500 text-sm">Удалить</button>
                         </div>
-                        <div class="mb-2">
-                            <label class="text-sm font-medium">Баллы:</label>
-                            <input class="elem-points w-24 border rounded-lg p-1 ml-2 text-sm" type="number" value="${el.points || (el.type === 'text' ? 0 : 1)}" min="0">
-                        </div>
-                        <textarea class="elem-content w-full border rounded-lg p-2 text-sm mb-2" rows="2" placeholder="Текст...">${escapeHtml(el.content || '')}</textarea>
-                    `;
+                        <div class="mb-2"><label class="text-sm font-medium">Баллы:</label><input class="elem-points w-24 border rounded-lg p-1 ml-2 text-sm" type="number" value="${el.points || (el.type === 'text' ? 0 : 1)}" min="0"></div>
+                        <textarea class="elem-content w-full border rounded-lg p-2 text-sm mb-2" rows="2" placeholder="Текст...">${escapeHtml(el.content || '')}</textarea>`;
                     if (el.type === 'choice') {
                         elemCard.innerHTML += `<div class="mt-2"><label class="text-sm font-medium">Варианты:</label><div class="options-list mt-1 space-y-1"></div><button class="add-option-btn text-indigo-600 text-sm mt-1"><i class="fas fa-plus mr-1"></i> Добавить вариант</button></div><div class="mt-2"><label class="text-sm font-medium">Правильный ответ:</label><select class="elem-correct border rounded-lg p-1 ml-2 text-sm"></select></div>`;
                     }
                     if (el.imageBase64) {
-                        elemCard.innerHTML += `<div class="photo-preview-container mt-2"><img src="${el.imageBase64}" class="preview-img max-h-20 rounded cursor-pointer"><div class="remove-photo-btn" data-idx="${elemIdx}">✖</div></div>`;
+                        elemCard.innerHTML += `<div class="photo-preview-container mt-2"><img src="${el.imageBase64}" class="preview-img max-h-20 rounded cursor-pointer"><div class="remove-photo-btn" data-idx="${elemIdx}" style="cursor:pointer;color:red;font-size:12px;margin-top:4px;">✖ Удалить фото</div></div>`;
                     }
                     elemCard.innerHTML += `<div class="mt-2"><button class="add-photo-btn text-indigo-600 text-sm"><i class="fas fa-camera mr-1"></i> Добавить изображение</button><input type="file" accept="image/*" class="photo-file hidden"></div>`;
                     elementsContainer.appendChild(elemCard);
-                    
-                    // Обработчики без перерендера всей страницы
+
                     const contentInput = elemCard.querySelector('.elem-content');
                     const pointsInput = elemCard.querySelector('.elem-points');
-                    if (contentInput) {
-                        contentInput.addEventListener('input', (e) => { 
-                            pagesStore[pageIdx][elemIdx].content = e.target.value; 
-                        });
-                    }
-                    if (pointsInput) {
-                        pointsInput.addEventListener('input', (e) => { 
-                            pagesStore[pageIdx][elemIdx].points = parseInt(e.target.value) || 0; 
-                        });
-                    }
+                    if (contentInput) contentInput.addEventListener('input', (e) => { pagesStore[pageIdx][elemIdx].content = e.target.value; });
+                    if (pointsInput) pointsInput.addEventListener('input', (e) => { pagesStore[pageIdx][elemIdx].points = parseInt(e.target.value) || 0; });
+
                     if (el.type === 'choice') {
                         if (!el.options) el.options = ["Вариант 1"];
                         if (el.correctIndex === undefined) el.correctIndex = 0;
                         const optionsList = elemCard.querySelector('.options-list');
                         const correctSelect = elemCard.querySelector('.elem-correct');
                         function renderOptions() {
-                            optionsList.innerHTML = ''; 
-                            correctSelect.innerHTML = '';
+                            optionsList.innerHTML = ''; correctSelect.innerHTML = '';
                             el.options.forEach((opt, optIdx) => {
-                                const optDiv = document.createElement('div'); 
-                                optDiv.className = 'option-row';
+                                const optDiv = document.createElement('div'); optDiv.style.display = 'flex'; optDiv.style.gap = '6px'; optDiv.style.marginBottom = '4px';
                                 optDiv.innerHTML = `<input type="text" class="flex-1 border rounded-lg p-1 text-sm option-text" value="${escapeHtml(opt)}"><button class="remove-option text-red-400 text-sm">✖</button>`;
                                 optionsList.appendChild(optDiv);
-                                const optInput = optDiv.querySelector('.option-text');
-                                optInput.addEventListener('input', (e) => { 
-                                    el.options[optIdx] = e.target.value; 
-                                });
-                                optDiv.querySelector('.remove-option').onclick = () => { 
-                                    el.options.splice(optIdx, 1); 
-                                    if (el.correctIndex >= el.options.length) el.correctIndex = 0; 
-                                    renderOptions(); 
-                                };
-                                const option = document.createElement('option');
-                                option.value = optIdx;
-                                option.textContent = `${optIdx + 1}. ${opt.substring(0, 40)}`;
-                                if (el.correctIndex === optIdx) option.selected = true;
-                                correctSelect.appendChild(option);
+                                optDiv.querySelector('.option-text').addEventListener('input', (e) => { el.options[optIdx] = e.target.value; });
+                                optDiv.querySelector('.remove-option').onclick = () => { el.options.splice(optIdx, 1); if (el.correctIndex >= el.options.length) el.correctIndex = 0; renderOptions(); };
+                                const option = document.createElement('option'); option.value = optIdx; option.textContent = `${optIdx + 1}. ${opt.substring(0, 40)}`; if (el.correctIndex === optIdx) option.selected = true; correctSelect.appendChild(option);
                             });
-                            correctSelect.onchange = (e) => { 
-                                el.correctIndex = parseInt(e.target.value); 
-                            };
+                            correctSelect.onchange = (e) => { el.correctIndex = parseInt(e.target.value); };
                         }
                         renderOptions();
-                        elemCard.querySelector('.add-option-btn').onclick = () => { 
-                            el.options.push(`Новый вариант ${el.options.length + 1}`); 
-                            renderOptions(); 
-                        };
+                        elemCard.querySelector('.add-option-btn').onclick = () => { el.options.push(`Новый вариант ${el.options.length + 1}`); renderOptions(); };
                     }
+
                     const addPhotoBtn = elemCard.querySelector('.add-photo-btn');
                     const fileInput = elemCard.querySelector('.photo-file');
                     addPhotoBtn.onclick = () => fileInput.click();
-                    fileInput.onchange = (ev) => { 
-                        const file = ev.target.files[0]; 
-                        if (file) { 
-                            const reader = new FileReader(); 
-                            reader.onload = (re) => { 
-                                pagesStore[pageIdx][elemIdx].imageBase64 = re.target.result; 
-                                renderConstructorUI(); 
-                            }; 
-                            reader.readAsDataURL(file); 
-                        } 
-                    };
+                    fileInput.onchange = (ev) => { const file = ev.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (re) => { pagesStore[pageIdx][elemIdx].imageBase64 = re.target.result; renderConstructorUI(); }; reader.readAsDataURL(file); } };
                     const removePhotoBtn = elemCard.querySelector('.remove-photo-btn');
-                    if (removePhotoBtn) {
-                        removePhotoBtn.onclick = () => { 
-                            pagesStore[pageIdx][elemIdx].imageBase64 = null; 
-                            renderConstructorUI(); 
-                        };
-                    }
+                    if (removePhotoBtn) removePhotoBtn.onclick = () => { pagesStore[pageIdx][elemIdx].imageBase64 = null; renderConstructorUI(); };
                     const previewImg = elemCard.querySelector('.preview-img');
-                    if (previewImg) {
-                        previewImg.onclick = () => window.showImagePopup(previewImg.src);
-                    }
-                    elemCard.querySelector('.delete-elem').onclick = () => { 
-                        pagesStore[pageIdx].splice(elemIdx, 1); 
-                        if (pagesStore[pageIdx].length === 0 && pagesStore.length > 1) {
-                            pagesStore.splice(pageIdx, 1);
-                            renderConstructorUI();
-                        } else {
-                            renderElements();
-                        }
-                    };
+                    if (previewImg) previewImg.onclick = () => window.showImagePopup(previewImg.src);
+                    elemCard.querySelector('.delete-elem').onclick = () => { pagesStore[pageIdx].splice(elemIdx, 1); if (pagesStore[pageIdx].length === 0 && pagesStore.length > 1) { pagesStore.splice(pageIdx, 1); renderConstructorUI(); } else { renderElements(); } };
                 });
             }
             renderElements();
-            
-            pageDiv.querySelector('.delete-page').onclick = () => { 
-                pagesStore.splice(pageIdx, 1); 
-                if (pagesStore.length === 0) pagesStore = [[]];
-                renderConstructorUI(); 
-            };
-            pageDiv.querySelectorAll('.add-elem-btn').forEach(btn => { 
-                btn.onclick = () => { 
-                    const type = btn.dataset.type; 
-                    const newElem = { type: type, content: "", points: type === 'text' ? 0 : 1, imageBase64: null }; 
-                    if (type === 'choice') newElem.options = ["Вариант 1"], newElem.correctIndex = 0; 
-                    pagesStore[pageIdx].push(newElem); 
-                    renderConstructorUI(); 
-                }; 
+
+            pageDiv.querySelector('.delete-page').onclick = () => { pagesStore.splice(pageIdx, 1); if (pagesStore.length === 0) pagesStore = [[]]; renderConstructorUI(); };
+            pageDiv.querySelectorAll('.add-elem-btn').forEach(btn => {
+                btn.onclick = () => { const type = btn.dataset.type; const newElem = { type, content: "", points: type === 'text' ? 0 : 1, imageBase64: null }; if (type === 'choice') { newElem.options = ["Вариант 1"]; newElem.correctIndex = 0; } pagesStore[pageIdx].push(newElem); renderConstructorUI(); };
             });
         });
     }
-    
+
     document.getElementById("addPageBtn")?.addEventListener("click", () => { pagesStore.push([]); renderConstructorUI(); });
     document.getElementById("publishTaskBtn")?.addEventListener("click", async () => {
         const title = document.getElementById("taskName").value.trim(), targetClass = document.getElementById("taskClass").value.trim();
         if (!title || !targetClass) { showToast("Заполните название и класс", true); return; }
         if (pagesStore.length === 0 || pagesStore.every(p => p.length === 0)) { showToast("Добавьте хотя бы одну страницу", true); return; }
-        const deadlineDate = document.getElementById("deadlineDate").value;
-        const deadlineTime = document.getElementById("deadlineTime").value;
-        let deadline = null;
-        if (deadlineDate) deadline = new Date(`${deadlineDate}T${deadlineTime || "23:59"}`).toISOString();
-        const pagesObj = {}; 
+        const deadlineDate = document.getElementById("deadlineDate").value, deadlineTime = document.getElementById("deadlineTime").value;
+        let deadline = null; if (deadlineDate) deadline = new Date(`${deadlineDate}T${deadlineTime || "23:59"}`).toISOString();
+        const pagesObj = {};
         for (let i = 0; i < pagesStore.length; i++) {
-            pagesObj[i] = pagesStore[i].map(el => { 
-                const base = { type: el.type, points: Number(el.points) || (el.type === 'text' ? 0 : 1), content: el.content || "" }; 
-                if (el.type === 'choice') base.options = el.options || ["Вариант 1"], base.correctAnswer = [el.correctIndex || 0]; 
-                if (el.imageBase64) base.imageBase64 = el.imageBase64; 
-                return base; 
-            });
+            pagesObj[i] = pagesStore[i].map(el => { const base = { type: el.type, points: Number(el.points) || (el.type === 'text' ? 0 : 1), content: el.content || "" }; if (el.type === 'choice') { base.options = el.options || ["Вариант 1"]; base.correctAnswer = [el.correctIndex || 0]; } if (el.imageBase64) base.imageBase64 = el.imageBase64; return base; });
         }
-        try { 
-            await db.collection("tasks").add({ title, targetClass, pages: pagesObj, published: true, deadline, createdBy: currentUserObj.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); 
-            showToast("Опубликовано!"); 
-            pagesStore = [[]]; 
-            renderConstructorUI(); 
-            document.getElementById("taskName").value = ""; 
-            document.getElementById("taskClass").value = ""; 
-            document.getElementById("deadlineDate").value = ""; 
-            document.getElementById("deadlineTime").value = ""; 
-            loadMyTasksForMentor(); 
-            loadTasks(); 
-        } catch(err) { 
-            showToast("Ошибка: " + err.message, true); 
-        }
+        try {
+            await db.collection("tasks").add({ title, targetClass, pages: pagesObj, published: true, deadline, createdBy: currentUserObj.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            showToast("Опубликовано!");
+            pagesStore = [[]]; renderConstructorUI();
+            document.getElementById("taskName").value = ""; document.getElementById("taskClass").value = ""; document.getElementById("deadlineDate").value = ""; document.getElementById("deadlineTime").value = "";
+            loadMyTasksForMentor(); loadTasks();
+        } catch(err) { showToast("Ошибка: " + err.message, true); }
     });
-    
+
     async function loadMyTasksForMentor() {
         if (userRole !== "mentor") return;
         const snap = await db.collection("tasks").where("createdBy", "==", currentUserObj.uid).get();
-        const cont = document.getElementById("myPublishedTasks"); 
-        cont.innerHTML = "";
+        const cont = document.getElementById("myPublishedTasks"); cont.innerHTML = "";
         for (const doc of snap.docs) {
             const taskData = doc.data();
             const resultsSnap = await db.collection("results").where("taskId", "==", doc.id).get();
-            const div = document.createElement("div");
-            div.className = "border-b py-2 flex justify-between items-center";
+            const div = document.createElement("div"); div.className = "border-b py-2 flex justify-between items-center";
             div.innerHTML = `<div><span class="font-medium">${escapeHtml(taskData.title)}</span><span class="text-xs text-gray-400 ml-2">(${taskData.targetClass})</span><div class="text-xs text-indigo-500">${resultsSnap.size} учеников</div></div><div><button data-id="${doc.id}" class="delMine text-red-500 text-sm mr-2">Удалить</button><button data-id="${doc.id}" class="viewTaskMentor text-indigo-600 text-sm">Просмотреть</button></div>`;
             cont.appendChild(div);
         }
-        document.querySelectorAll(".delMine").forEach(btn => btn.addEventListener("click", async (e) => { if (confirm("Удалить задание?")) { await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasks(); showToast("Удалено"); } }));
-        document.querySelectorAll(".viewTaskMentor").forEach(btn => btn.addEventListener("click", async (e) => {
-            const id = btn.dataset.id;
-            const snap = await db.collection("tasks").doc(id).get();
-            if (snap.exists) { currentTask = { id: snap.id, ...snap.data() }; await openTaskForMentor(); }
-        }));
+        document.querySelectorAll(".delMine").forEach(btn => btn.addEventListener("click", async () => { if (confirm("Удалить задание?")) { await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasks(); showToast("Удалено"); } }));
+        document.querySelectorAll(".viewTaskMentor").forEach(btn => btn.addEventListener("click", async () => { const id = btn.dataset.id; const snap = await db.collection("tasks").doc(id).get(); if (snap.exists) { currentTask = { id: snap.id, ...snap.data() }; await openTaskForMentor(); } }));
     }
-    
-    function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
-    
+
     if (document.getElementById("pagesContainer")) { pagesStore = [[]]; renderConstructorUI(); }
 </script>
 </body>
