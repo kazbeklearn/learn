@@ -67,52 +67,36 @@
         .image-popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; cursor: pointer; }
         .image-popup img { max-width: 90%; max-height: 90%; border-radius: 20px; }
         
-        /* ===== МОДАЛЬНОЕ ОКНО ОБРАТНОЙ СВЯЗИ (FIX) ===== */
+        /* ===== МОДАЛЬНОЕ ОКНО ОБРАТНОЙ СВЯЗИ — ПОЛНЫЙ ЭКРАН ===== */
         #feedbackModal {
             position: fixed;
             inset: 0;
-            z-index: 50;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding: 16px;
-            padding-top: max(16px, env(safe-area-inset-top));
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-        }
-        #feedbackModal.hidden { display: none; }
-        #feedbackModal .modal-inner {
-            background: white;
-            border-radius: 24px;
-            width: 100%;
-            max-width: 680px;
-            min-height: 500px;
-            max-height: 90vh;
+            z-index: 200;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            margin: auto;
-            animation: scaleIn 0.25s ease-out;
+            background: white;
         }
+        #feedbackModal.hidden { display: none; }
         #feedbackModal .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 20px;
+            padding: 12px 16px;
             border-bottom: 1px solid #e5e7eb;
             flex-shrink: 0;
+            background: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
         #feedbackModal .modal-body {
             flex: 1;
             overflow: hidden;
-            min-height: 400px;
+            display: flex;
+            flex-direction: column;
         }
         #feedbackModal iframe {
+            flex: 1;
             width: 100%;
             height: 100%;
-            min-height: 400px;
             border: none;
             display: block;
         }
@@ -587,16 +571,14 @@
     </div>
 </div>
 
-<!-- МОДАЛКА: ОБРАТНАЯ СВЯЗЬ (ИСПРАВЛЕННАЯ) -->
+<!-- МОДАЛКА: ОБРАТНАЯ СВЯЗЬ — ПОЛНЫЙ ЭКРАН -->
 <div id="feedbackModal" class="hidden">
-    <div class="modal-inner">
-        <div class="modal-header">
-            <h2 class="font-bold text-lg">Обратная связь</h2>
-            <button id="closeFeedbackBtn" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-        </div>
-        <div class="modal-body">
-            <iframe src="https://forms.yandex.ru/u/69ee23d1d0468856297480b1?iframe=1" loading="lazy" title="Форма обратной связи"></iframe>
-        </div>
+    <div class="modal-header">
+        <h2 class="font-bold text-lg text-gray-800">Обратная связь</h2>
+        <button id="closeFeedbackBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 text-xl transition-colors">&times;</button>
+    </div>
+    <div class="modal-body">
+        <iframe src="https://forms.yandex.ru/u/69ee23d1d0468856297480b1?iframe=1" loading="lazy" title="Форма обратной связи"></iframe>
     </div>
 </div>
 
@@ -804,6 +786,7 @@
         currentPagesArray = normalizePages(currentTask.pages);
         currentPageAnswers = currentPagesArray.map(() => ({}));
         currentPage = 0;
+        isResultPage = false;
         isReviewModeGlobal = false;
         renderFullscreenTask(false);
     }
@@ -847,14 +830,27 @@
         return total > 0 ? Math.round((answered / total) * 100) : 0;
     }
 
+    // isResultPage = специальная финальная страница после всех заданий
+    let isResultPage = false;
+
     function renderFullscreenTask(isReviewMode) {
         const modal = document.getElementById("taskFullscreen");
         document.getElementById("fsTaskTitle").innerText = currentTask.title;
-        
+
+        // Общее кол-во "виртуальных" страниц: страницы задания + (для ученика в режиме решения) результат
+        const totalVirtualPages = (!isReviewMode && userRole === "student")
+            ? currentPagesArray.length + 1
+            : currentPagesArray.length;
+
+        // Текущая виртуальная страница
+        const virtualPage = isResultPage ? currentPagesArray.length : currentPage;
+
         // Прогресс
-        const progressPct = isReviewMode ? 100 : calcProgress();
+        const progressPct = isReviewMode ? 100 : (isResultPage ? 100 : calcProgress());
         document.getElementById("fsProgressFill").style.width = progressPct + '%';
-        document.getElementById("fsProgressLeft").innerText = `Страница ${currentPage + 1} из ${currentPagesArray.length}`;
+        document.getElementById("fsProgressLeft").innerText = isResultPage
+            ? 'Результат'
+            : `Страница ${currentPage + 1} из ${currentPagesArray.length}`;
         document.getElementById("fsProgressRight").innerText = isReviewMode ? 'Просмотр' : `${progressPct}%`;
 
         // Точки страниц
@@ -863,68 +859,86 @@
         for (let i = 0; i < currentPagesArray.length; i++) {
             const dot = document.createElement("div");
             let cls = 'page-dot';
-            if (i === currentPage) cls += ' active';
-            else if (isReviewMode || (currentPageAnswers[i] && Object.keys(currentPageAnswers[i]).length > 0)) cls += ' completed';
+            if (!isResultPage && i === currentPage) cls += ' active';
+            else if (isReviewMode || (currentPageAnswers[i] && Object.keys(currentPageAnswers[i]).length > 0) || isResultPage) cls += ' completed';
             dot.className = cls;
             dot.textContent = i + 1;
             if (isReviewMode) {
                 dot.style.cursor = 'pointer';
-                dot.onclick = () => { currentPage = i; renderFullscreenTask(isReviewMode); };
+                dot.onclick = () => { currentPage = i; isResultPage = false; renderFullscreenTask(isReviewMode); };
             }
             pagesContainer.appendChild(dot);
         }
-        
+        // Точка результата (только для ученика в режиме решения)
+        if (!isReviewMode && userRole === "student") {
+            const resDot = document.createElement("div");
+            resDot.className = 'page-dot' + (isResultPage ? ' active' : '');
+            resDot.style.background = isResultPage ? '#10b981' : '#e8ecff';
+            resDot.style.color = isResultPage ? 'white' : '#10b981';
+            resDot.style.borderColor = isResultPage ? '#059669' : 'transparent';
+            resDot.innerHTML = '🏆';
+            resDot.style.fontSize = '14px';
+            pagesContainer.appendChild(resDot);
+        }
+
         // Контент
         const content = document.getElementById("fsPageContent");
-        
-        // Показываем экран результата на последней странице
-        const isLastPage = currentPage === currentPagesArray.length - 1;
-        const isResultScreen = !isReviewMode && userRole === "student" && isLastPage && 
-                               currentPagesArray[currentPage].every(el => el.type === 'text' || (currentPageAnswers[currentPage] || {})[currentPagesArray[currentPage].indexOf(el)] !== undefined);
-        
-        // Рендер элементов
+
+        if (isResultPage) {
+            // Показываем только экран результата
+            const totalPts = getTotalPoints(), earnedPts = getEarnedPoints();
+            const pct = totalPts > 0 ? Math.round((earnedPts / totalPts) * 100) : 0;
+            content.innerHTML = renderResultScreen(earnedPts, totalPts, pct);
+            content.scrollTop = 0;
+            const saveBtn = content.querySelector('#finalSaveResultBtn');
+            if (saveBtn) saveBtn.addEventListener('click', saveResult);
+
+            // Нижняя навигация: только "Назад"
+            const prevBtn = document.getElementById("fsPrevPage");
+            const nextBtn = document.getElementById("fsNextPage");
+            const finishBtn = document.getElementById("fsFinishBtn");
+            document.getElementById("fsPageCounter").innerText = `${totalVirtualPages} / ${totalVirtualPages}`;
+            prevBtn.disabled = false;
+            prevBtn.onclick = () => { isResultPage = false; currentPage = currentPagesArray.length - 1; renderFullscreenTask(false); };
+            nextBtn.classList.add("hidden");
+            finishBtn.classList.add("hidden");
+            document.getElementById("closeTaskBtn").onclick = () => modal.classList.add("hidden");
+            modal.classList.remove("hidden");
+            return;
+        }
+
+        // Рендер элементов текущей страницы
         const pageElements = currentPagesArray[currentPage] || [];
         const htmlParts = [];
-        
         for (let i = 0; i < pageElements.length; i++) {
             const el = pageElements[i];
             const ans = (currentPageAnswers[currentPage] || {})[i];
             htmlParts.push(renderElement(el, i, ans, isReviewMode));
         }
-        
-        // Кнопка завершения (если это последняя страница для ученика)
-        if (!isReviewMode && userRole === "student" && isLastPage) {
-            const totalPts = getTotalPoints(), earnedPts = getEarnedPoints();
-            const pct = totalPts > 0 ? Math.round((earnedPts / totalPts) * 100) : 0;
-            htmlParts.push(renderResultScreen(earnedPts, totalPts, pct));
-        }
-        
+
         // Результаты учеников (для наставника, последняя страница)
+        const isLastPage = currentPage === currentPagesArray.length - 1;
         if (isReviewMode && userRole === "mentor" && isLastPage) {
             htmlParts.push(renderMentorResults());
         }
-        
+
         content.innerHTML = htmlParts.join('');
         content.scrollTop = 0;
-        
+
         // Вешаем события
         if (!isReviewMode && userRole === "student") {
-            // Выбор варианта
             content.querySelectorAll('.choice-option').forEach(opt => {
-                opt.addEventListener('click', (e) => {
+                opt.addEventListener('click', () => {
                     const selectedIdx = parseInt(opt.dataset.opt);
                     const elemIdx = parseInt(opt.dataset.elem);
                     if (!currentPageAnswers[currentPage]) currentPageAnswers[currentPage] = {};
                     currentPageAnswers[currentPage][elemIdx] = { type: 'choice', selected: selectedIdx };
-                    // Обновляем только эту группу опций (без полного перерендера)
-                    updateChoiceGroup(content, elemIdx, selectedIdx, currentPagesArray[currentPage][elemIdx], isReviewMode);
-                    // Обновляем прогресс
+                    updateChoiceGroup(content, elemIdx, selectedIdx);
                     const pct = calcProgress();
                     document.getElementById("fsProgressFill").style.width = pct + '%';
                     document.getElementById("fsProgressRight").innerText = pct + '%';
                 });
             });
-            // Текстовый ответ
             content.querySelectorAll('.textarea-ans').forEach(ta => {
                 ta.addEventListener("input", (e) => {
                     const elemIdx = parseInt(ta.dataset.elemIdx);
@@ -936,13 +950,11 @@
                 });
             });
         }
-        
-        // Клик по фото
+
         content.querySelectorAll('.modal-photo').forEach(img => {
             img.addEventListener('click', () => window.showImagePopup(img.src));
         });
-        
-        // Просмотр ответов ученика (для наставника)
+
         if (isReviewMode && userRole === "mentor") {
             content.querySelectorAll('.student-result-row').forEach(row => {
                 row.addEventListener('click', () => {
@@ -957,29 +969,27 @@
                 });
             });
         }
-        
-        // Сохранение результата
-        const saveBtn = content.querySelector('#finalSaveResultBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', saveResult);
-        }
-        
+
         // Кнопки навигации
         const prevBtn = document.getElementById("fsPrevPage");
         const nextBtn = document.getElementById("fsNextPage");
         const finishBtn = document.getElementById("fsFinishBtn");
         const pageCounter = document.getElementById("fsPageCounter");
-        
+
         prevBtn.disabled = (currentPage === 0);
-        pageCounter.innerText = `${currentPage + 1} / ${currentPagesArray.length}`;
-        
+        pageCounter.innerText = `${currentPage + 1} / ${totalVirtualPages}`;
+        prevBtn.onclick = () => { if (currentPage > 0) { currentPage--; renderFullscreenTask(isReviewMode); } };
+
         if (isLastPage) {
             nextBtn.classList.add("hidden");
             finishBtn.classList.remove("hidden");
             if (userRole === "student" && !isReviewMode) {
-                finishBtn.onclick = null; // кнопка "Готово" на последней странице — ничего не делает (результат уже на экране)
-                finishBtn.classList.add("hidden"); // прячем, т.к. есть кнопка "Сохранить" в контенте
+                // Кнопка "Завершить" ведёт на экран результата
+                finishBtn.textContent = '';
+                finishBtn.innerHTML = '<i class="fas fa-flag-checkered mr-1"></i> Завершить';
+                finishBtn.onclick = () => { isResultPage = true; renderFullscreenTask(false); };
             } else {
+                finishBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Закрыть';
                 finishBtn.onclick = () => modal.classList.add("hidden");
             }
         } else {
@@ -987,8 +997,7 @@
             finishBtn.classList.add("hidden");
             nextBtn.onclick = () => { currentPage++; renderFullscreenTask(isReviewMode); };
         }
-        
-        prevBtn.onclick = () => { if (currentPage > 0) { currentPage--; renderFullscreenTask(isReviewMode); } };
+
         document.getElementById("closeTaskBtn").onclick = () => modal.classList.add("hidden");
         modal.classList.remove("hidden");
     }
@@ -1051,7 +1060,7 @@
         </div>`;
     }
 
-    function updateChoiceGroup(container, elemIdx, selectedIdx, el, isReviewMode) {
+    function updateChoiceGroup(container, elemIdx, selectedIdx) {
         const group = container.querySelector(`.choices-group[data-elem="${elemIdx}"]`);
         if (!group) return;
         group.querySelectorAll('.choice-option').forEach(opt => {
@@ -1266,9 +1275,12 @@
 
     document.getElementById("addPageBtn")?.addEventListener("click", () => { pagesStore.push([]); renderConstructorUI(); });
     document.getElementById("publishTaskBtn")?.addEventListener("click", async () => {
+        if (!currentUserObj) { showToast("Вы не авторизованы", true); return; }
         const title = document.getElementById("taskName").value.trim(), targetClass = document.getElementById("taskClass").value.trim();
         if (!title || !targetClass) { showToast("Заполните название и класс", true); return; }
         if (pagesStore.length === 0 || pagesStore.every(p => p.length === 0)) { showToast("Добавьте хотя бы одну страницу", true); return; }
+        const btn = document.getElementById("publishTaskBtn");
+        btn.disabled = true; btn.textContent = "Публикую...";
         const deadlineDate = document.getElementById("deadlineDate").value, deadlineTime = document.getElementById("deadlineTime").value;
         let deadline = null; if (deadlineDate) deadline = new Date(`${deadlineDate}T${deadlineTime || "23:59"}`).toISOString();
         const pagesObj = {};
@@ -1282,6 +1294,7 @@
             document.getElementById("taskName").value = ""; document.getElementById("taskClass").value = ""; document.getElementById("deadlineDate").value = ""; document.getElementById("deadlineTime").value = "";
             loadMyTasksForMentor(); loadTasks();
         } catch(err) { showToast("Ошибка: " + err.message, true); }
+        finally { btn.disabled = false; btn.textContent = "Опубликовать"; }
     });
 
     async function loadMyTasksForMentor() {
