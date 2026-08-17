@@ -1008,83 +1008,227 @@
 </svg>
 
 <!-- АВТОРИЗАЦИЯ — новый дизайн -->
-<div id="authScreen" class="min-h-screen flex flex-col" style="background:#f0f6ff;">
-    <!-- Верхняя часть — горы и фичи -->
-    <div class="flex-1 flex flex-col items-center" style="background:linear-gradient(180deg,#e8f0fc 0%,#c8ddf8 60%,#1862CF 100%);position:relative;min-height:52vh;overflow:hidden;">
-        <svg viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;left:0;right:0;width:100%;height:auto;opacity:0.15;" preserveAspectRatio="none">
-            <polygon points="0,180 80,60 160,120 240,30 320,100 400,50 400,180" fill="#1862CF"/>
-            <polygon points="0,180 60,90 130,140 200,50 280,110 360,70 400,90 400,180" fill="#2563eb" opacity="0.6"/>
+<style>
+    @keyframes authFadeDown { from{opacity:0;transform:translateY(-24px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes authFadeUp   { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes authFadeIn   { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
+    @keyframes authFloat    { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-10px) rotate(3deg)} }
+    @keyframes authCloudL   { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-8px)} }
+    @keyframes authCloudR   { 0%,100%{transform:translateX(0)} 50%{transform:translateX(8px)} }
+    @keyframes authFeature  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes authPlaneDash{ to{stroke-dashoffset:0} }
+    @keyframes authPulse    { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
+    @keyframes authShake    { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+    .auth-logo   { animation: authFadeDown 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
+    .auth-title  { animation: authFadeDown 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s both; }
+    .auth-feat1  { animation: authFeature 0.5s ease 0.5s both; }
+    .auth-feat2  { animation: authFeature 0.5s ease 0.65s both; }
+    .auth-feat3  { animation: authFeature 0.5s ease 0.8s both; }
+    .auth-card   { animation: authFadeUp  0.65s cubic-bezier(0.34,1.56,0.64,1) 0.25s both; }
+    .auth-plane  { animation: authFloat 3.5s ease-in-out infinite; transform-origin:center; }
+    .auth-cloud-l{ animation: authCloudL 5s ease-in-out infinite; }
+    .auth-cloud-r{ animation: authCloudR 6s ease-in-out infinite; }
+    .auth-trail  { stroke-dasharray:60; stroke-dashoffset:60; animation: authPlaneDash 1.8s ease 1s forwards; }
+    .auth-dot1   { animation: authPulse 2s ease-in-out 0.2s infinite; }
+    .auth-dot2   { animation: authPulse 2s ease-in-out 0.7s infinite; }
+    .auth-dot3   { animation: authPulse 2s ease-in-out 1.2s infinite; }
+
+    .auth-input-wrap { position:relative; margin-bottom:12px; }
+    .auth-input-wrap i.left-ic {
+        position:absolute; left:16px; top:50%; transform:translateY(-50%);
+        color:#93c5fd; font-size:0.85rem; pointer-events:none; transition:color 0.2s;
+    }
+    .auth-input {
+        width:100%; border:1.5px solid #dbeafe; border-radius:16px;
+        padding:14px 14px 14px 44px; font-size:0.95rem; color:#0f172a;
+        background:#f0f7ff; outline:none; box-sizing:border-box;
+        transition:border-color 0.25s, background 0.25s, box-shadow 0.25s;
+    }
+    .auth-input:focus {
+        border-color:#1862CF; background:white;
+        box-shadow:0 0 0 4px rgba(24,98,207,0.1);
+    }
+    .auth-input.shake { animation: authShake 0.4s ease; }
+    .auth-btn {
+        width:100%; background:linear-gradient(135deg,#1862CF,#2563eb);
+        color:white; border:none; border-radius:16px; padding:15px;
+        font-size:1rem; font-weight:900; cursor:pointer; letter-spacing:0.3px;
+        box-shadow:0 6px 20px rgba(24,98,207,0.35);
+        transition:transform 0.18s, box-shadow 0.18s, background 0.18s;
+        font-family:'Inter',sans-serif;
+    }
+    .auth-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 10px 28px rgba(24,98,207,0.45); }
+    .auth-btn:active:not(:disabled) { transform:scale(0.97); }
+    .auth-btn:disabled { opacity:0.7; cursor:not-allowed; }
+
+    #authScreen { flex-direction:column; min-height:100vh; background:#eaf3ff; }
+    #authScreen.hidden, #mainApp.hidden { display:none !important; }
+    #authScreen:not(.hidden) { display:flex !important; }
+    #mainApp:not(.hidden) { display:flex !important; }
+
+    @media(min-width:768px) {
+        #authScreen { flex-direction:row !important; }
+        #authScreen > .auth-top { flex:1; min-height:100vh; border-radius:0 !important; }
+        #authScreen > .auth-card {
+            width:440px; min-width:440px; border-radius:0 !important;
+            margin-top:0 !important; min-height:100vh;
+            display:flex; flex-direction:column; justify-content:center;
+            padding:52px 44px; box-shadow:-8px 0 40px rgba(24,98,207,0.1);
+        }
+    }
+</style>
+
+<div id="authScreen">
+    <!-- ВЕРХНЯЯ ЧАСТЬ — горы, логотип, фичи -->
+    <div class="auth-top flex-1 flex flex-col items-center" style="position:relative;overflow:hidden;background:linear-gradient(175deg,#eaf3ff 0%,#c8dcf7 45%,#90bef0 75%,#5b9de3 100%);">
+
+        <!-- Декоративные облака -->
+        <svg class="auth-cloud-l" style="position:absolute;top:6%;left:-4%;width:38%;opacity:0.45;" viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="100" cy="50" rx="95" ry="30" fill="white"/>
+            <ellipse cx="70"  cy="38" rx="55" ry="28" fill="white"/>
+            <ellipse cx="130" cy="40" rx="45" ry="24" fill="white"/>
         </svg>
-        <svg viewBox="0 0 60 60" style="position:absolute;top:28%;right:8%;width:48px;opacity:0.65;" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 30 L55 5 L40 55 L28 38 Z" fill="none" stroke="#1862CF" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M28 38 L32 48" stroke="#1862CF" stroke-width="2" stroke-linecap="round"/>
-            <path d="M40 58 Q50 45 55 30 Q58 18 52 8" fill="none" stroke="#1862CF" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.4"/>
+        <svg class="auth-cloud-r" style="position:absolute;top:12%;right:-2%;width:32%;opacity:0.38;" viewBox="0 0 160 70" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="80" cy="45" rx="75" ry="24" fill="white"/>
+            <ellipse cx="55" cy="34" rx="45" ry="22" fill="white"/>
+            <ellipse cx="108" cy="36" rx="38" ry="20" fill="white"/>
         </svg>
-        <div class="pt-10 pb-2">
-            <img src="img1/logo.png" alt="Казбэк Learn" style="height:76px;width:auto;object-fit:contain;display:block;margin:0 auto;" onerror="this.style.display='none'">
+
+        <!-- Горный пейзаж SVG -->
+        <svg style="position:absolute;bottom:0;left:0;right:0;width:100%;height:auto;" viewBox="0 0 800 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- дальние горы -->
+            <polygon points="0,260 120,80 240,160 360,40 480,140 600,60 720,130 800,70 800,260" fill="#a8c8f0" opacity="0.6"/>
+            <!-- средние -->
+            <polygon points="0,260 80,120 180,180 300,70 420,160 540,90 660,150 800,100 800,260" fill="#7aaedf" opacity="0.7"/>
+            <!-- передние -->
+            <polygon points="0,260 60,170 160,200 280,130 400,195 520,125 640,185 760,140 800,160 800,260" fill="#5494cc" opacity="0.55"/>
+            <!-- снег на вершинах -->
+            <polygon points="300,70 320,90 340,70 330,60" fill="white" opacity="0.8"/>
+            <polygon points="120,80 135,97 150,80 138,70" fill="white" opacity="0.7"/>
+            <polygon points="540,90 555,108 570,90 557,80" fill="white" opacity="0.7"/>
+        </svg>
+
+        <!-- Бумажный самолётик с траекторией -->
+        <svg class="auth-plane" style="position:absolute;top:22%;right:9%;width:56px;" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <path class="auth-trail" d="M58 4 Q48 22 35 30 Q20 38 8 55" fill="none" stroke="#1862CF" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5"/>
+            <path d="M4 32 L56 6 L42 56 L28 40 Z" fill="white" stroke="#1862CF" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M28 40 L32 52" stroke="#1862CF" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M4 32 L28 40" stroke="#1862CF" stroke-width="1" opacity="0.4"/>
+        </svg>
+
+        <!-- Декоративные точки -->
+        <div class="auth-dot1" style="position:absolute;top:18%;left:12%;width:10px;height:10px;border-radius:50%;background:#1862CF;opacity:0.3;"></div>
+        <div class="auth-dot2" style="position:absolute;top:35%;left:18%;width:7px;height:7px;border-radius:50%;background:#2563eb;opacity:0.25;"></div>
+        <div class="auth-dot3" style="position:absolute;top:28%;right:22%;width:8px;height:8px;border-radius:50%;background:#1862CF;opacity:0.28;"></div>
+
+        <!-- Логотип -->
+        <div class="auth-logo pt-10 pb-1 relative z-10">
+            <img src="img1/logo.png" alt="Казбэк Learn" style="height:80px;width:auto;object-fit:contain;display:block;margin:0 auto;filter:drop-shadow(0 4px 12px rgba(24,98,207,0.2));" onerror="this.style.display='none'">
         </div>
-        <div class="text-center px-6 mt-2">
-            <h1 style="font-family:'Inter',sans-serif;font-weight:900;font-size:1.75rem;color:#0d2a5e;line-height:1.15;letter-spacing:-0.5px;">Образовательная<br>платформа нового<br>поколения</h1>
-            <p style="color:#1862CF;font-weight:700;font-size:0.95rem;margin-top:8px;letter-spacing:0.2px;">УЧИТЕЛЯМ · УЧЕНИКАМ · РЕЗУЛЬТАТЫ</p>
+
+        <!-- Заголовок -->
+        <div class="auth-title text-center px-6 mt-3 relative z-10">
+            <h1 style="font-family:'Inter',sans-serif;font-weight:900;font-size:1.65rem;color:#0d2a5e;line-height:1.2;letter-spacing:-0.3px;text-shadow:0 2px 8px rgba(255,255,255,0.6);">
+                Образовательная платформа<br>
+                <span style="color:#1862CF;">для учителей</span> и их учеников
+            </h1>
         </div>
-        <div class="flex gap-3 mt-5 px-4 justify-center flex-wrap">
-            <div class="flex items-center gap-2 bg-white/75 backdrop-blur rounded-2xl px-3 py-2">
-                <div style="width:30px;height:30px;background:#dbeafe;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-book-open" style="color:#1862CF;font-size:0.8rem;"></i></div>
+
+        <!-- Фичи -->
+        <div class="flex gap-3 mt-5 px-4 justify-center flex-wrap pb-8 relative z-10">
+            <div class="auth-feat1 flex items-center gap-2 px-3 py-2" style="background:rgba(255,255,255,0.82);backdrop-filter:blur(12px);border-radius:16px;border:1px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(24,98,207,0.08);">
+                <div style="width:30px;height:30px;background:#dbeafe;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-book-open" style="color:#1862CF;font-size:0.8rem;"></i>
+                </div>
                 <span style="font-size:0.7rem;font-weight:800;color:#0d2a5e;max-width:68px;line-height:1.25;">Задания для учеников</span>
             </div>
-            <div class="flex items-center gap-2 bg-white/75 backdrop-blur rounded-2xl px-3 py-2">
-                <div style="width:30px;height:30px;background:#dbeafe;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-graduation-cap" style="color:#1862CF;font-size:0.8rem;"></i></div>
+            <div class="auth-feat2 flex items-center gap-2 px-3 py-2" style="background:rgba(255,255,255,0.82);backdrop-filter:blur(12px);border-radius:16px;border:1px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(24,98,207,0.08);">
+                <div style="width:30px;height:30px;background:#dbeafe;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-graduation-cap" style="color:#1862CF;font-size:0.8rem;"></i>
+                </div>
                 <span style="font-size:0.7rem;font-weight:800;color:#0d2a5e;max-width:58px;line-height:1.25;">Удобное обучение</span>
             </div>
-            <div class="flex items-center gap-2 bg-white/75 backdrop-blur rounded-2xl px-3 py-2">
-                <div style="width:30px;height:30px;background:#dbeafe;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-chart-line" style="color:#1862CF;font-size:0.8rem;"></i></div>
+            <div class="auth-feat3 flex items-center gap-2 px-3 py-2" style="background:rgba(255,255,255,0.82);backdrop-filter:blur(12px);border-radius:16px;border:1px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(24,98,207,0.08);">
+                <div style="width:30px;height:30px;background:#dbeafe;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-chart-line" style="color:#1862CF;font-size:0.8rem;"></i>
+                </div>
                 <span style="font-size:0.7rem;font-weight:800;color:#0d2a5e;max-width:58px;line-height:1.25;">Прогресс и результат</span>
             </div>
         </div>
     </div>
 
-    <!-- Форма входа -->
-    <div id="authCard" style="background:white;border-radius:32px 32px 0 0;margin-top:-20px;padding:28px 24px 44px;box-shadow:0 -4px 32px rgba(24,98,207,0.1);">
+    <!-- ФОРМА ВХОДА -->
+    <div class="auth-card" id="authCard" style="background:white;border-radius:32px 32px 0 0;margin-top:-22px;padding:28px 24px 48px;">
         <div class="text-center mb-6">
-            <h2 style="font-family:'Inter',sans-serif;font-weight:900;font-size:1.35rem;color:#0d2a5e;letter-spacing:-0.3px;">Войдите в аккаунт</h2>
-            <p style="font-size:0.82rem;color:#94a3b8;margin-top:5px;font-weight:500;">Введите данные для входа в платформу</p>
+            <h2 style="font-family:'Inter',sans-serif;font-weight:900;font-size:1.3rem;color:#0d2a5e;letter-spacing:-0.2px;">Войдите в аккаунт</h2>
+            <p style="font-size:0.82rem;color:#94a3b8;margin-top:4px;font-weight:500;">Введите данные для входа в платформу</p>
         </div>
         <div style="max-width:420px;margin:0 auto;">
             <!-- Email -->
-            <div style="position:relative;margin-bottom:12px;">
-                <i class="fas fa-envelope" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:0.85rem;pointer-events:none;"></i>
-                <input type="email" id="loginEmail" placeholder="Email" autocomplete="email"
-                    style="width:100%;border:1.5px solid #e2e8f0;border-radius:16px;padding:14px 14px 14px 44px;font-size:0.95rem;color:#0f172a;background:#f8fafc;outline:none;transition:border-color 0.2s,background 0.2s;box-sizing:border-box;"
-                    onfocus="this.style.borderColor='#1862CF';this.style.background='white'"
-                    onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
+            <div class="auth-input-wrap">
+                <i class="fas fa-envelope left-ic"></i>
+                <input type="email" id="loginEmail" class="auth-input" placeholder="Email" autocomplete="email">
             </div>
             <!-- Пароль -->
-            <div style="position:relative;margin-bottom:20px;">
-                <i class="fas fa-lock" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:0.85rem;pointer-events:none;"></i>
-                <input type="password" id="loginPassword" placeholder="Пароль" autocomplete="current-password"
-                    style="width:100%;border:1.5px solid #e2e8f0;border-radius:16px;padding:14px 48px 14px 44px;font-size:0.95rem;color:#0f172a;background:#f8fafc;outline:none;transition:border-color 0.2s,background 0.2s;box-sizing:border-box;"
-                    onfocus="this.style.borderColor='#1862CF';this.style.background='white'"
-                    onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
-                <button type="button" id="togglePassword"
-                    style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px;font-size:0.9rem;line-height:1;"
-                    onclick="(function(){var i=document.getElementById('loginPassword'),ic=document.querySelector('#togglePassword i');if(i.type==='password'){i.type='text';ic.className='fas fa-eye';}else{i.type='password';ic.className='fas fa-eye-slash';}})()">
-                    <i class="fas fa-eye-slash"></i>
-                </button>
+            <div class="auth-input-wrap" style="margin-bottom:20px;">
+                <i class="fas fa-lock left-ic"></i>
+                <input type="password" id="loginPassword" class="auth-input" placeholder="Пароль" autocomplete="current-password">
             </div>
-            <!-- Кнопка войти -->
-            <button id="loginBtn" type="button"
-                onclick="(function(){var e=document.getElementById('loginEmail').value,p=document.getElementById('loginPassword').value,btn=document.getElementById('loginBtn'),err=document.getElementById('loginError');if(!e||!p){err.textContent='Заполните все поля';err.classList.remove('hidden');return;}btn.disabled=true;btn.textContent='Вход...';auth.signInWithEmailAndPassword(e,p).then(function(){err.classList.add('hidden');}).catch(function(er){err.textContent='Неверный email или пароль';err.classList.remove('hidden');btn.disabled=false;btn.textContent='Войти';});})();"
-                style="width:100%;background:linear-gradient(135deg,#1862CF,#2563eb);color:white;border:none;border-radius:16px;padding:15px;font-size:1rem;font-weight:900;cursor:pointer;box-shadow:0 6px 20px rgba(24,98,207,0.35);transition:all 0.2s;letter-spacing:0.3px;font-family:'Inter',sans-serif;">
-                Войти
-            </button>
+            <!-- Войти -->
+            <button id="loginBtn" class="auth-btn" type="button">Войти</button>
         </div>
-        <p style="text-align:center;margin-top:16px;font-size:0.82rem;color:#94a3b8;cursor:pointer;"
-            onclick="document.getElementById('feedbackModal').classList.remove('hidden')">
-            Что-то не так? <span style="color:#1862CF;font-weight:700;text-decoration:underline;text-underline-offset:2px;">Обратная связь</span>
+        <p style="text-align:center;margin-top:18px;font-size:0.82rem;color:#94a3b8;">
+            Вопросы: <a href="mailto:mustafinamir10378@gmail.com" style="color:#1862CF;font-weight:700;text-decoration:underline;text-underline-offset:2px;">mustafinamir10378@gmail.com</a>
         </p>
-        <div id="loginError" class="hidden" style="color:#ef4444;font-size:0.85rem;text-align:center;margin-top:8px;font-weight:600;"></div>
+        <div id="loginError" class="hidden" style="color:#ef4444;font-size:0.84rem;text-align:center;margin-top:10px;font-weight:600;"></div>
     </div>
 </div>
+
+<script>
+    // Вход — с полным сбросом состояния после выхода
+    document.getElementById('loginBtn')?.addEventListener('click', function() {
+        var email = document.getElementById('loginEmail').value.trim();
+        var pass  = document.getElementById('loginPassword').value;
+        var btn   = document.getElementById('loginBtn');
+        var err   = document.getElementById('loginError');
+
+        if (!email || !pass) {
+            err.textContent = 'Заполните Email и пароль';
+            err.classList.remove('hidden');
+            ['loginEmail','loginPassword'].forEach(function(id) {
+                var el = document.getElementById(id);
+                el.classList.add('shake');
+                el.style.borderColor = '#ef4444';
+                setTimeout(function(){ el.classList.remove('shake'); el.style.borderColor=''; }, 500);
+            });
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Вход...';
+        err.classList.add('hidden');
+
+        auth.signInWithEmailAndPassword(email, pass)
+            .then(function() { /* onAuthStateChanged сделает всё */ })
+            .catch(function() {
+                err.textContent = 'Неверный email или пароль';
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Войти';
+                var passEl = document.getElementById('loginPassword');
+                passEl.classList.add('shake');
+                passEl.style.borderColor = '#ef4444';
+                setTimeout(function(){ passEl.classList.remove('shake'); passEl.style.borderColor=''; }, 500);
+            });
+    });
+
+    ['loginEmail','loginPassword'].forEach(function(id) {
+        document.getElementById(id)?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('loginBtn')?.click();
+        });
+    });
+</script>
 
 <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
 <div id="mainApp" class="hidden min-h-screen flex flex-col">
@@ -1167,34 +1311,14 @@
                 <h2 id="profileName" class="text-xl font-bold"></h2>
                 <p id="profileEmail" class="text-gray-500 text-sm mt-1"></p>
                 <p class="mt-2"><span class="font-semibold">Роль:</span> <span id="profileRole"></span> &nbsp;|&nbsp; <span class="font-semibold">Класс:</span> <span id="profileClass"></span></p>
-                <!-- Блок баллов — только для ученика, управляется JS -->
-                <div id="pointsBlock" class="hidden mt-4 rounded-2xl overflow-hidden border border-blue-100">
-                    <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 flex items-center gap-2">
-                        <span class="text-2xl">⭐</span>
-                        <span class="text-white font-extrabold text-lg">Мои баллы</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-0">
-                        <div class="p-4 border-r border-b border-blue-50 bg-blue-50/40">
-                            <div id="pointsHomework" class="text-2xl font-black text-blue-700">—</div>
-                            <div class="text-xs text-gray-500 font-medium mt-0.5">За задания</div>
-                        </div>
-                        <div class="p-4 border-b border-blue-50 bg-amber-50/40">
-                            <div id="pointsOlympiad" class="text-2xl font-black text-amber-600">—</div>
-                            <div class="text-xs text-gray-500 font-medium mt-0.5">За олимпиады</div>
-                        </div>
-                        <div class="p-4 col-span-2 bg-gradient-to-r from-blue-50 to-amber-50/30">
-                            <div id="pointsTotal" class="text-3xl font-black text-gray-900">—</div>
-                            <div class="text-xs text-gray-500 font-medium mt-0.5">Всего баллов</div>
-                        </div>
-                    </div>
+                
                 </div>
                 <button id="aboutPlatformBtn" class="mt-4 bg-blue-100 text-blue-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-blue-200"><i class="fas fa-info-circle mr-2"></i>О платформе</button>
                 <button id="awardsBtn" class="student-only hidden mt-3 bg-amber-50 text-amber-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-amber-100"><i class="fas fa-trophy mr-2"></i>Награды</button>
-                <button id="shopBtn" class="student-only hidden mt-3 bg-purple-50 text-purple-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-purple-100 relative"><i class="fas fa-store mr-2"></i>Магазин профиля<span id="shopBtnBadge" class="hidden ml-2 text-xs font-bold">⭐<span id="shopBtnPoints"></span></span></button>
+                <button id="customizeBtn" class="student-only hidden mt-3 bg-purple-50 text-purple-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-purple-100"><i class="fas fa-palette mr-2"></i>Украшения профиля</button>
                 <button id="notificationsProfileBtn" class="mt-3 bg-blue-100 text-blue-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-blue-200 relative"><i class="fas fa-bell mr-2"></i>Уведомления<span id="profileNotifBadge" class="hidden ml-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full"></span></button>
-                <button id="feedbackBtn" class="mt-3 bg-blue-100 text-blue-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-blue-200"><i class="fas fa-envelope mr-2"></i>Обратная связь</button>
                 <button id="logoutBtnBottom" class="mt-3 bg-red-500 text-white py-2 px-5 rounded-xl w-full font-bold transition-all hover:bg-red-600">Выйти</button>
-                <div class="mt-6 text-xs text-gray-400 border-t pt-4">Сайт создан в развлекательных и юмористических целях и не несёт негативный характер. Данной организации не существует.</div>
+                <div class="mt-6 text-xs text-gray-400 border-t pt-4">Сайт создан в развлекательных и юмористических целях и не несёт негативный характер. Данной организации не существует.<br>Связь: <a href="mailto:mustafinamir10378@gmail.com" class="text-blue-400 hover:underline">mustafinamir10378@gmail.com</a></div>
             </div>
         </div>
     </div>
@@ -1311,6 +1435,23 @@
     </div>
 </div>
 
+<!-- МОДАЛКА: УКРАШЕНИЯ ПРОФИЛЯ (бесплатно) -->
+<div id="customizeModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
+    <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:88vh;display:flex;flex-direction:column;">
+        <div class="flex items-center justify-between px-5 pt-5 pb-2 flex-shrink-0">
+            <h2 class="font-extrabold text-xl text-gray-900">🎨 Украшения профиля</h2>
+            <button id="closeCustomizeBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">&times;</button>
+        </div>
+        <p class="text-xs text-gray-400 px-5 mb-3">Все элементы доступны бесплатно</p>
+        <div class="flex gap-2 px-5 pb-2 flex-shrink-0">
+            <button class="cust-tab flex-1 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white" data-cat="frames">🖼 Рамки</button>
+            <button class="cust-tab flex-1 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600" data-cat="badges">🏷 Значки</button>
+            <button class="cust-tab flex-1 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600" data-cat="titles">💬 Титулы</button>
+        </div>
+        <div id="customizeItemsContainer" class="flex-1 overflow-y-auto px-5 pb-6 space-y-2 mt-1"></div>
+    </div>
+</div>
+
 <!-- МОДАЛКА: ПУБЛИЧНЫЙ ПРОФИЛЬ -->
 <div id="publicProfileModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
     <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:82vh;display:flex;flex-direction:column;">
@@ -1321,29 +1462,6 @@
         <div id="publicProfileContent" class="flex-1 overflow-y-auto px-5 pb-8 text-center">
             <div class="py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
         </div>
-    </div>
-</div>
-
-<!-- МОДАЛКА: МАГАЗИН ПРОФИЛЯ -->
-<div id="shopModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
-    <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:88vh;display:flex;flex-direction:column;">
-        <div class="flex items-center justify-between px-5 pt-5 pb-2 flex-shrink-0">
-            <div>
-                <h2 class="font-extrabold text-xl text-gray-900">🛍 Магазин профиля</h2>
-                <p class="text-xs text-gray-400 mt-0.5">Баллы тратятся навсегда</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="bg-amber-100 text-amber-700 font-extrabold text-sm px-3 py-1 rounded-full">⭐ <span id="shopPointsDisplay">0</span> б.</span>
-                <button id="closeShopBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">&times;</button>
-            </div>
-        </div>
-        <!-- Табы категорий -->
-        <div class="flex gap-2 px-5 py-2 flex-shrink-0">
-            <button class="shop-tab-btn flex-1 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white transition-all" data-cat="frames">🖼 Рамки</button>
-            <button class="shop-tab-btn flex-1 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 transition-all" data-cat="badges">🏷 Значки</button>
-            <button class="shop-tab-btn flex-1 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 transition-all" data-cat="titles">💬 Титулы</button>
-        </div>
-        <div id="shopItemsContainer" class="flex-1 overflow-y-auto px-5 pb-6 space-y-3 mt-2"></div>
     </div>
 </div>
 
@@ -1434,6 +1552,7 @@
     const auth = firebase.auth(), db = firebase.firestore();
 
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
+    let sessionReadSet = new Set(); // Фикс 8: прочитанные уведомления из Firestore
     let currentTask = null, currentPagesArray = [], currentPageAnswers = [], currentPage = 0;
     let completedTasksData = new Map();
     let mentorStudentsList = [];
@@ -1518,32 +1637,56 @@
             document.getElementById("greetingText").innerHTML = hour < 12 ? "Доброе утро" : (hour < 18 ? "Добрый день" : "Добрый вечер");
             if (userRole === "mentor") {
                 document.querySelectorAll(".mentor-only").forEach(el => el.classList.remove("hidden"));
+                document.querySelectorAll(".student-only").forEach(el => el.classList.add("hidden"));
+                document.getElementById("pointsBlock")?.classList.add("hidden");
                 loadMyTasksForMentor();
             } else {
                 document.querySelectorAll(".mentor-only").forEach(el => el.classList.add("hidden"));
-                // Только для учеников
                 document.getElementById("pointsBlock")?.classList.remove("hidden");
                 document.querySelectorAll(".student-only").forEach(el => el.classList.remove("hidden"));
             }
+            // Загружаем прочитанные уведомления из Firestore (Фикс 8)
+            sessionReadSet = new Set();
+            try {
+                const rdoc = await db.collection("notifRead").doc(user.uid).get();
+                if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
+            } catch(e) {}
+
+            // Фикс 4: сбрасываем currentTab чтобы switchNav("tasks") всегда сработал
+            currentTab = null;
             switchNav("tasks"); loadTasks();
             checkUnreadNotifs();
             if (userRole === 'student') {
                 setTimeout(showUnreadPopups, 1200);
-                setTimeout(checkPointsDecayWarning, 3000);
                 loadPlayerInventory().then(() => { applyEquippedItems(); initAvatar(); });
             }
+            // Сбрасываем кнопку входа
+            const lb = document.getElementById('loginBtn');
+            if (lb) { lb.disabled = false; lb.textContent = 'Войти'; }
         } else {
+            // Фикс 3: полный сброс состояния при выходе
+            currentUserObj = null; userRole = null; userClass = null;
+            userDisplayName = "Пользователь"; currentTab = null;
+            completedTasksData.clear(); mentorStudentsList = [];
+            teachersCache.clear(); currentTask = null;
+            currentPagesArray = []; currentPageAnswers = [];
+            playerInventory = { owned: [], equipped: {} };
+            pagesStore = [[]];
+            isResultPage = false;
+            sessionReadSet = new Set(); // сброс прочитанных
+
             document.getElementById("authScreen").classList.remove("hidden");
             document.getElementById("mainApp").classList.add("hidden");
+
+            const lb = document.getElementById('loginBtn');
+            if (lb) { lb.disabled = false; lb.textContent = 'Войти'; }
+            const emailEl = document.getElementById('loginEmail');
+            const passEl = document.getElementById('loginPassword');
+            if (emailEl) emailEl.value = '';
+            if (passEl)  passEl.value  = '';
         }
     });
 
-    document.getElementById("togglePassword")?.addEventListener("click", () => {
-        const inp = document.getElementById("loginPassword");
-        const icon = document.querySelector("#togglePassword i");
-        if (inp.type === "password") { inp.type = "text"; icon.className = "fas fa-eye"; }
-        else { inp.type = "password"; icon.className = "fas fa-eye-slash"; }
-    });
     document.getElementById("logoutBtnBottom")?.addEventListener("click", () => auth.signOut());
 
     /* ===== МОДАЛКИ ===== */
@@ -1563,7 +1706,8 @@
     let currentTab = 'tasks';
 
     function switchNav(tab) {
-        if (tab === currentTab) return;
+        const oldTab = currentTab;
+        if (tab === currentTab && currentTab !== null) return;
 
         const oldIdx = TAB_ORDER.indexOf(currentTab);
         const newIdx = TAB_ORDER.indexOf(tab);
@@ -1604,7 +1748,7 @@
         document.getElementById("greetingContainer").classList.toggle("hidden", tab !== "tasks");
         if (tab === "constructor" && userRole === "mentor") setTimeout(renderConstructorUI, 120);
         if (tab === "notifications") setTimeout(loadNotifications, 120);
-        if (tab === "profile" && userRole === "student") setTimeout(loadStudentPoints, 120);
+
     }
 
     // Вибрация + ripple при нажатии на nav кнопки
@@ -1672,8 +1816,6 @@
             }
 
             // Считаем непрочитанные
-            const readKey = `notif_read_${currentUserObj.uid}`;
-            const readSet = new Set(JSON.parse(localStorage.getItem(readKey) || "[]"));
             let unread = 0;
 
             // Сортируем на клиенте по дате (новые сверху)
@@ -1728,11 +1870,15 @@
                     });
                 }
                 card.addEventListener("click", () => {
-                    readSet.add(doc.id);
-                    localStorage.setItem(readKey, JSON.stringify([...readSet]));
-                    card.classList.remove("unread");
-                    card.querySelector(".notif-unread-dot")?.remove();
-                    updateNotifBadge(Math.max(0, unreadNotifCount - 1));
+                    if (!sessionReadSet.has(doc.id)) {
+                        sessionReadSet.add(doc.id);
+                        db.collection("notifRead").doc(currentUserObj.uid)
+                            .set({ ids: [...sessionReadSet] })
+                            .catch(()=>{});
+                        card.classList.remove("unread");
+                        card.querySelector(".notif-unread-dot")?.remove();
+                        updateNotifBadge(Math.max(0, unreadNotifCount - 1));
+                    }
                 });
                 container.appendChild(card);
             });
@@ -1755,11 +1901,16 @@
     // Отметить все прочитанными
     document.getElementById("markAllReadBtn")?.addEventListener("click", async () => {
         if (!currentUserObj) return;
-        const readKey = `notif_read_${currentUserObj.uid}`;
         const cards = document.querySelectorAll(".notif-card.unread");
-        const readSet = new Set(JSON.parse(localStorage.getItem(readKey) || "[]"));
-        cards.forEach(c => { readSet.add(c.dataset.id); c.classList.remove("unread"); c.querySelector(".notif-unread-dot")?.remove(); });
-        localStorage.setItem(readKey, JSON.stringify([...readSet]));
+        cards.forEach(c => {
+            sessionReadSet.add(c.dataset.id);
+            c.classList.remove("unread");
+            c.querySelector(".notif-unread-dot")?.remove();
+        });
+        // Сохраняем весь Set в Firestore (перезапись, не merge)
+        db.collection("notifRead").doc(currentUserObj.uid)
+            .set({ ids: [...sessionReadSet] })
+            .catch(()=>{});
         updateNotifBadge(0);
         showToast("Все уведомления прочитаны");
     });
@@ -1846,8 +1997,6 @@
             if (userRole === "mentor") targets.push("mentors");
             if (userClass) targets.push(`class_${userClass}`);
             const snap = await db.collection("notifications").where("target", "in", targets).get();
-            const readKey = `notif_read_${currentUserObj.uid}`;
-            const readSet = new Set(JSON.parse(localStorage.getItem(readKey) || "[]"));
             let unread = 0;
             snap.forEach(doc => { if (!readSet.has(doc.id)) unread++; });
             updateNotifBadge(unread);
@@ -1975,9 +2124,7 @@
 
     async function loadStudentPoints() {
         if (userRole !== 'student' || !currentUserObj) return;
-        // Используем ту же логику что и getSpendablePoints для консистентности
         try {
-            const pts = await getSpendablePoints();
             const snap = await db.collection("results").where("studentId","==",currentUserObj.uid).get();
             let hwPts = 0, olPts = 0;
             for (const doc of snap.docs) {
@@ -1987,14 +2134,15 @@
                 const p = calcTaskPoints(d.percent||0, isOlympiad);
                 if (isOlympiad) olPts += p; else hwPts += p;
             }
-            // Баллы в профиле = доступные (за вычетом трат)
-            const spentDoc = await db.collection("inventory").doc(currentUserObj.uid).get();
-            const spent = spentDoc.exists ? (spentDoc.data().spent||0) : 0;
-            const total = hwPts + olPts;
-            const available = Math.max(0, total - spent);
+            const invDoc = await db.collection("inventory").doc(currentUserObj.uid).get();
+            const spent = invDoc.exists ? (invDoc.data().spent||0) : 0;
+            const available = Math.max(0, hwPts + olPts - spent);
             document.getElementById("pointsHomework").textContent = hwPts;
             document.getElementById("pointsOlympiad").textContent = olPts;
-            document.getElementById("pointsTotal").textContent = available + ' (доступно)';
+            document.getElementById("pointsTotal").textContent = available;
+            // Обновляем тоже и в магазине если открыт
+            const shopDisp = document.getElementById("shopPointsDisplay");
+            if (shopDisp) shopDisp.textContent = available;
         } catch(e) { console.error("Points:", e); }
     }
 
@@ -2214,10 +2362,8 @@
             const targets = ["all", "students"];
             if (userClass) targets.push(`class_${userClass}`);
             const snap = await db.collection("notifications").where("target", "in", targets).get();
-            const readKey = `notif_read_${currentUserObj.uid}`;
-            const readSet = new Set(JSON.parse(localStorage.getItem(readKey) || "[]"));
             const unread = [];
-            snap.forEach(doc => { if (!readSet.has(doc.id)) unread.push({ id: doc.id, ...doc.data() }); });
+            snap.forEach(doc => { if (!sessionReadSet.has(doc.id)) unread.push({ id: doc.id, ...doc.data() }); });
             // Сортируем по дате, берём последние 3
             unread.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
             unread.slice(0, 3).forEach((n, i) => {
@@ -2235,259 +2381,131 @@
         } catch(e) {}
     }
 
-    /* ===== МАГАЗИН ===== */
-    const SHOP_CATALOG = {
+
+    /* ===== УКРАШЕНИЯ ПРОФИЛЯ (бесплатно) ===== */
+    const COSMETICS = {
         frames: [
-            { id: 'frame_blue',   emoji: '🔷', name: 'Синяя рамка',     desc: 'Классическая синяя',        price: 10,  css: 'border: 4px solid #1862CF;' },
-            { id: 'frame_gold',   emoji: '🌟', name: 'Золотая рамка',   desc: 'Для лучших учеников',       price: 25,  css: 'border: 4px solid #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,0.4);' },
-            { id: 'frame_green',  emoji: '💚', name: 'Зелёная рамка',   desc: 'Свежая и яркая',            price: 15,  css: 'border: 4px solid #10b981;' },
-            { id: 'frame_purple', emoji: '💜', name: 'Фиолетовая рамка', desc: 'Загадочная',               price: 20,  css: 'border: 4px solid #8b5cf6; box-shadow: 0 0 10px rgba(139,92,246,0.3);' },
-            { id: 'frame_fire',   emoji: '🔥', name: 'Огненная рамка',  desc: 'Только для избранных',      price: 50,  css: 'border: 4px solid #ef4444; box-shadow: 0 0 16px rgba(239,68,68,0.5);' },
-            { id: 'frame_rainbow',emoji: '🌈', name: 'Радужная рамка',  desc: 'Самая редкая',              price: 100, css: 'border: 4px solid transparent; background: linear-gradient(white,white) padding-box, linear-gradient(135deg,#ef4444,#f59e0b,#10b981,#1862CF,#8b5cf6) border-box;' },
+            { id: 'frame_none',   emoji: '⬜', name: 'Без рамки',       desc: 'Убрать рамку',         css: '' },
+            { id: 'frame_blue',   emoji: '🔷', name: 'Синяя рамка',     desc: 'Классическая синяя',   css: 'border: 4px solid #1862CF;' },
+            { id: 'frame_gold',   emoji: '🌟', name: 'Золотая рамка',   desc: 'Для лучших',           css: 'border: 4px solid #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,0.4);' },
+            { id: 'frame_green',  emoji: '💚', name: 'Зелёная рамка',   desc: 'Свежая',               css: 'border: 4px solid #10b981;' },
+            { id: 'frame_purple', emoji: '💜', name: 'Фиолетовая',      desc: 'Загадочная',           css: 'border: 4px solid #8b5cf6; box-shadow: 0 0 10px rgba(139,92,246,0.3);' },
+            { id: 'frame_fire',   emoji: '🔥', name: 'Огненная рамка',  desc: 'Яркая',                css: 'border: 4px solid #ef4444; box-shadow: 0 0 16px rgba(239,68,68,0.5);' },
+            { id: 'frame_rainbow',emoji: '🌈', name: 'Радужная рамка',  desc: 'Уникальная',           css: 'border: 4px solid transparent; background: linear-gradient(white,white) padding-box, linear-gradient(135deg,#ef4444,#f59e0b,#10b981,#1862CF,#8b5cf6) border-box;' },
         ],
         badges: [
-            { id: 'badge_star',   emoji: '⭐', name: 'Звезда',          desc: 'Показывается рядом с именем', price: 8  },
-            { id: 'badge_fire',   emoji: '🔥', name: 'Огонь',           desc: 'Горячий ученик',              price: 12 },
-            { id: 'badge_crown',  emoji: '👑', name: 'Корона',          desc: 'Для королей знаний',          price: 30 },
-            { id: 'badge_rocket', emoji: '🚀', name: 'Ракета',          desc: 'Стремительный прогресс',      price: 18 },
-            { id: 'badge_diamond',emoji: '💎', name: 'Алмаз',          desc: 'Редкий и дорогой',            price: 60 },
+            { id: 'badge_none',   emoji: '✖️', name: 'Без значка',      desc: 'Убрать значок' },
+            { id: 'badge_star',   emoji: '⭐', name: 'Звезда',          desc: 'Рядом с именем' },
+            { id: 'badge_fire',   emoji: '🔥', name: 'Огонь',           desc: 'Горячий' },
+            { id: 'badge_crown',  emoji: '👑', name: 'Корона',          desc: 'Для королей' },
+            { id: 'badge_rocket', emoji: '🚀', name: 'Ракета',          desc: 'Прогресс' },
+            { id: 'badge_diamond',emoji: '💎', name: 'Алмаз',           desc: 'Редкий' },
+            { id: 'badge_bolt',   emoji: '⚡', name: 'Молния',          desc: 'Быстрый' },
         ],
         titles: [
-            { id: 'title_learner', emoji: '📖', name: '"Любознательный"', desc: 'Отображается под именем', price: 15 },
-            { id: 'title_genius',  emoji: '🧠', name: '"Гений"',          desc: 'Для умников',             price: 40 },
-            { id: 'title_legend',  emoji: '🏆', name: '"Легенда"',        desc: 'Самый редкий титул',      price: 80 },
-            { id: 'title_champ',   emoji: '🥇', name: '"Чемпион"',        desc: 'За победы в олимпиадах',  price: 35 },
+            { id: 'title_none',    emoji: '✖️', name: 'Без титула',      desc: 'Убрать титул' },
+            { id: 'title_learner', emoji: '📖', name: '"Любознательный"', desc: 'Под именем' },
+            { id: 'title_genius',  emoji: '🧠', name: '"Гений"',          desc: 'Для умников' },
+            { id: 'title_legend',  emoji: '🏆', name: '"Легенда"',        desc: 'Редкий' },
+            { id: 'title_champ',   emoji: '🥇', name: '"Чемпион"',        desc: 'За олимпиады' },
+            { id: 'title_explorer',emoji: '🗺', name: '"Исследователь"',  desc: 'Для любопытных' },
         ]
     };
 
-    let shopCurrentCat = 'frames';
-    let playerInventory = { owned: [], equipped: {} }; // equipped: {frame, badge, title}
-    let playerSpendablePoints = 0;
+    let custCurrentCat = 'frames';
+    let playerInventory = { equipped: {} };
 
     async function loadPlayerInventory() {
         if (!currentUserObj) return;
         try {
             const doc = await db.collection("inventory").doc(currentUserObj.uid).get();
-            if (doc.exists) playerInventory = doc.data();
-            else playerInventory = { owned: [], equipped: {} };
+            playerInventory = doc.exists ? { equipped: {}, ...(doc.data()||{}) } : { equipped: {} };
         } catch(e) {}
     }
 
     async function savePlayerInventory() {
         if (!currentUserObj) return;
-        await db.collection("inventory").doc(currentUserObj.uid).set(playerInventory);
-    }
-
-    async function getSpendablePoints() {
-        const snap = await db.collection("results").where("studentId","==",currentUserObj.uid).get();
-        const docs = [];
-        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
-
-        // Сортируем по дате
-        docs.sort((a,b) => (a.completedAt?.seconds||0) - (b.completedAt?.seconds||0));
-
-        const now = Date.now();
-        const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-        // Находим дату последней активности
-        let lastActivityMs = 0;
-        docs.forEach(d => {
-            const ts = (d.completedAt?.seconds || 0) * 1000;
-            if (ts > lastActivityMs) lastActivityMs = ts;
-        });
-
-        // Если прошло больше недели с последней активности — баллы сгорают
-        const inactive = lastActivityMs > 0 && (now - lastActivityMs) > WEEK_MS;
-
-        // Считаем заработанные баллы
-        let earned = 0;
-        for (const d of docs) {
-            let isOlympiad = false;
-            try {
-                const t = await db.collection("tasks").doc(d.taskId).get();
-                if (t.exists) isOlympiad = t.data().taskType === 'olympiad';
-            } catch(e) {}
-            earned += calcTaskPoints(d.percent || 0, isOlympiad);
-        }
-
-        const spentDoc = await db.collection("inventory").doc(currentUserObj.uid).get();
-        const spent = spentDoc.exists ? (spentDoc.data().spent || 0) : 0;
-        const available = Math.max(0, earned - spent);
-
-        if (inactive && available > 0) {
-            // Показываем предупреждение о сгоревших баллах
-            const weeksSince = Math.floor((now - lastActivityMs) / WEEK_MS);
-            const burned = Math.min(available, Math.ceil(available * 0.5 * weeksSince)); // 50% за каждую неделю
-            const remaining = Math.max(0, available - burned);
-            showPopup({
-                icon: '🔥',
-                iconClass: 'alert',
-                title: `Сгорело ${burned} баллов`,
-                sub: `Неактивность более ${weeksSince} нед. Осталось: ${remaining}`,
-                duration: 6000
-            });
-            return remaining;
-        }
-
-        return available;
-    }
-
-    // Предупреждение о скором сгорании баллов при входе
-    async function checkPointsDecayWarning() {
-        if (userRole !== 'student' || !currentUserObj) return;
-        try {
-            const snap = await db.collection("results").where("studentId","==",currentUserObj.uid).get();
-            if (snap.empty) return;
-            let lastActivity = 0;
-            snap.forEach(d => {
-                const ts = (d.data().completedAt?.seconds || 0) * 1000;
-                if (ts > lastActivity) lastActivity = ts;
-            });
-            if (!lastActivity) return;
-            const daysSince = (Date.now() - lastActivity) / (24 * 60 * 60 * 1000);
-            if (daysSince >= 5 && daysSince < 7) {
-                const daysLeft = Math.ceil(7 - daysSince);
-                setTimeout(() => {
-                    showPopup({
-                        icon: '⚠️',
-                        iconClass: 'alert',
-                        title: `Баллы сгорят через ${daysLeft} дн.!`,
-                        sub: 'Выполни задание чтобы их сохранить',
-                        duration: 6000
-                    });
-                }, 2000);
-            }
-        } catch(e) {}
-    }
-
-    async function openShop() {
-        document.getElementById("shopModal").classList.remove("hidden");
-        shopCurrentCat = 'frames';
-        await loadPlayerInventory();
-        playerSpendablePoints = await getSpendablePoints();
-        document.getElementById("shopPointsDisplay").textContent = playerSpendablePoints;
-        renderShopItems();
-    }
-
-    function renderShopItems() {
-        // Обновляем табы
-        document.querySelectorAll('.shop-tab-btn').forEach(b => {
-            const active = b.dataset.cat === shopCurrentCat;
-            b.style.background = active ? '#1862CF' : '';
-            b.style.color = active ? 'white' : '';
-            b.className = `shop-tab-btn flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${active ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`;
-        });
-
-        const items = SHOP_CATALOG[shopCurrentCat] || [];
-        const container = document.getElementById("shopItemsContainer");
-        container.innerHTML = "";
-
-        items.forEach(item => {
-            const owned = playerInventory.owned?.includes(item.id);
-            const equipped = playerInventory.equipped?.[shopCurrentCat.slice(0,-1)] === item.id; // frames→frame
-            const catKey = shopCurrentCat === 'frames' ? 'frame' : shopCurrentCat === 'badges' ? 'badge' : 'title';
-            const canAfford = playerSpendablePoints >= item.price;
-
-            const div = document.createElement('div');
-            div.className = `shop-item ${equipped ? 'equipped' : owned ? 'owned' : ''}`;
-            div.innerHTML = `
-                <div class="shop-item-preview" style="${item.css||''}">${item.emoji}</div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-weight:800;font-size:0.9rem;color:#0f172a;">${item.name}</div>
-                    <div style="font-size:0.75rem;color:#6b7280;margin-top:1px;">${item.desc}</div>
-                    <div style="font-size:0.75rem;font-weight:700;color:${owned?'#059669':'#92400e'};margin-top:3px;">
-                        ${owned ? (equipped ? '✅ Надето' : '✓ Куплено') : `⭐ ${item.price} баллов`}
-                    </div>
-                </div>
-                <button class="shop-action-btn py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex-shrink-0"
-                    style="background:${equipped?'#e0f2fe;color:#0369a1':owned?'#eff6ff;color:#1862CF':canAfford?'#1862CF;color:white':'#f1f5f9;color:#94a3b8'}"
-                    data-id="${item.id}" data-cat="${catKey}" data-price="${item.price}" data-owned="${owned}" data-equipped="${equipped}">
-                    ${equipped ? 'Снять' : owned ? 'Надеть' : canAfford ? 'Купить' : 'Мало баллов'}
-                </button>`;
-            container.appendChild(div);
-        });
-
-        container.querySelectorAll('.shop-action-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const id = btn.dataset.id; const cat = btn.dataset.cat;
-                const price = parseInt(btn.dataset.price);
-                const owned = btn.dataset.owned === 'true';
-                const equipped = btn.dataset.equipped === 'true';
-
-                if (equipped) {
-                    // Снять
-                    delete playerInventory.equipped[cat];
-                    await savePlayerInventory();
-                    applyEquippedItems();
-                    renderShopItems();
-                    showToast("Снято");
-                } else if (owned) {
-                    // Надеть
-                    playerInventory.equipped[cat] = id;
-                    await savePlayerInventory();
-                    applyEquippedItems();
-                    renderShopItems();
-                    showToast("Надето!");
-                    showPopup({ icon: '✨', iconClass: 'shop', title: 'Внешний вид обновлён', sub: `Предмет «${id}» надет` });
-                } else if (playerSpendablePoints >= price) {
-                    // Купить
-                    if (!confirm(`Купить за ${price} баллов?`)) return;
-                    if (!playerInventory.owned) playerInventory.owned = [];
-                    playerInventory.owned.push(id);
-                    playerInventory.equipped = playerInventory.equipped || {};
-                    playerInventory.equipped[cat] = id; // автоматически надеваем
-                    playerInventory.spent = (playerInventory.spent || 0) + price;
-                    await savePlayerInventory();
-                    playerSpendablePoints -= price;
-                    document.getElementById("shopPointsDisplay").textContent = playerSpendablePoints;
-                    applyEquippedItems();
-                    renderShopItems();
-                    showToast(`✅ Куплено! Осталось ${playerSpendablePoints} баллов`);
-                    showPopup({ icon: '🛍', iconClass: 'shop', title: 'Покупка совершена!', sub: `«${SHOP_CATALOG[shopCurrentCat].find(i=>i.id===id)?.name}» надет автоматически` });
-                }
-            });
-        });
+        try { await db.collection("inventory").doc(currentUserObj.uid).set(playerInventory); } catch(e) {}
     }
 
     function applyEquippedItems() {
         const avatar = document.getElementById("profileAvatar");
-        if (!avatar) return;
         const eq = playerInventory.equipped || {};
 
-        // Рамка
-        const frameId = eq.frame;
-        const frame = frameId ? SHOP_CATALOG.frames.find(f => f.id === frameId) : null;
-        avatar.style.cssText = frame ? frame.css + 'border-radius:18px;' : 'border:none;border-radius:18px;';
-
-        // Значок рядом с именем
-        const badgeId = eq.badge;
-        const badge = badgeId ? SHOP_CATALOG.badges.find(b => b.id === badgeId) : null;
-        const nameEl = document.getElementById("profileName");
-        if (nameEl) {
-            const baseName = userDisplayName || '';
-            nameEl.innerHTML = badge ? `${escapeHtml(baseName)} <span style="font-size:1rem;">${badge.emoji}</span>` : escapeHtml(baseName);
+        if (avatar) {
+            const frameId = eq.frame;
+            const frame = (frameId && frameId !== 'frame_none') ? COSMETICS.frames.find(f => f.id === frameId) : null;
+            const frameCss = frame ? frame.css : '';
+            avatar.style.cssText = frameCss + 'border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;width:96px;height:96px;';
+            if (currentAvatarUrl) avatar.innerHTML = `<img src="${currentAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
         }
 
-        // Титул под именем
+        const badgeId = eq.badge;
+        const badge = (badgeId && badgeId !== 'badge_none') ? COSMETICS.badges.find(b => b.id === badgeId) : null;
+        const nameEl = document.getElementById("profileName");
+        if (nameEl) nameEl.innerHTML = badge ? `${escapeHtml(userDisplayName||'')} <span>${badge.emoji}</span>` : escapeHtml(userDisplayName||'');
+
         const titleId = eq.title;
-        const titleItem = titleId ? SHOP_CATALOG.titles.find(t => t.id === titleId) : null;
+        const titleItem = (titleId && titleId !== 'title_none') ? COSMETICS.titles.find(t => t.id === titleId) : null;
         let titleEl = document.getElementById("profileTitle");
         if (!titleEl && nameEl) {
             titleEl = document.createElement('div');
             titleEl.id = 'profileTitle';
             titleEl.style.cssText = 'font-size:0.78rem;color:#8b5cf6;font-weight:700;margin-top:2px;';
-            nameEl.parentNode.insertBefore(titleEl, nameEl.nextSibling);
+            nameEl.insertAdjacentElement('afterend', titleEl);
         }
         if (titleEl) titleEl.textContent = titleItem ? `${titleItem.emoji} ${titleItem.name}` : '';
     }
 
-    document.querySelectorAll('.shop-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => { shopCurrentCat = btn.dataset.cat; renderShopItems(); });
-    });
-    document.getElementById("shopBtn")?.addEventListener("click", openShop);
-    document.getElementById("closeShopBtn")?.addEventListener("click", () => document.getElementById("shopModal").classList.add("hidden"));
-    document.getElementById("shopModal")?.addEventListener("click", (e) => { if (e.target === document.getElementById("shopModal")) document.getElementById("shopModal").classList.add("hidden"); });
+    async function openCustomize() {
+        document.getElementById("customizeModal").classList.remove("hidden");
+        custCurrentCat = 'frames';
+        await loadPlayerInventory();
+        renderCustItems();
+    }
+
+    function renderCustItems() {
+        document.querySelectorAll('.cust-tab').forEach(b => {
+            const active = b.dataset.cat === custCurrentCat;
+            b.className = `cust-tab flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${active ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`;
+        });
+        const items = COSMETICS[custCurrentCat] || [];
+        const catKey = custCurrentCat === 'frames' ? 'frame' : custCurrentCat === 'badges' ? 'badge' : 'title';
+        const container = document.getElementById("customizeItemsContainer");
+        container.innerHTML = "";
+        items.forEach(item => {
+            const isNone = item.id.endsWith('_none');
+            const equipped = isNone ? !playerInventory.equipped?.[catKey] : playerInventory.equipped?.[catKey] === item.id;
+            const frame = custCurrentCat === 'frames' && item.css ? item : null;
+            const div = document.createElement('div');
+            div.style.cssText = `display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;border:2px solid ${equipped?'#1862CF':'#e5e7eb'};background:${equipped?'#eff6ff':'#f9fafb'};cursor:pointer;transition:all 0.18s;margin-bottom:6px;`;
+            div.innerHTML = `
+                <div style="width:44px;height:44px;border-radius:12px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;${frame&&frame.css?frame.css:''}">${item.emoji}</div>
+                <div style="flex:1;"><div style="font-weight:800;font-size:0.88rem;color:#0f172a;">${item.name}</div><div style="font-size:0.75rem;color:#6b7280;">${item.desc}</div></div>
+                ${equipped ? '<span style="color:#1862CF;font-size:1.1rem;font-weight:900;">✓</span>' : ''}`;
+            div.addEventListener('click', async () => {
+                if (!playerInventory.equipped) playerInventory.equipped = {};
+                if (isNone) delete playerInventory.equipped[catKey];
+                else playerInventory.equipped[catKey] = item.id;
+                await savePlayerInventory();
+                applyEquippedItems();
+                renderCustItems();
+                showToast(isNone ? 'Снято' : `Надет: ${item.name}`);
+            });
+            container.appendChild(div);
+        });
+    }
+
+    document.querySelectorAll('.cust-tab').forEach(btn => btn.addEventListener('click', () => { custCurrentCat = btn.dataset.cat; renderCustItems(); }));
+    document.getElementById("customizeBtn")?.addEventListener("click", openCustomize);
+    document.getElementById("closeCustomizeBtn")?.addEventListener("click", () => document.getElementById("customizeModal").classList.add("hidden"));
+    document.getElementById("customizeModal")?.addEventListener("click", (e) => { if(e.target===document.getElementById("customizeModal")) document.getElementById("customizeModal").classList.add("hidden"); });
+
     document.getElementById("awardsBtn")?.addEventListener("click", () => {
+        document.getElementById("awardsModal").classList.remove("hidden");
+        loadAwards();
+    });
+
         document.getElementById("awardsModal").classList.remove("hidden");
         loadAwards();
     });
@@ -3552,10 +3570,6 @@
         document.getElementById("taskTypeField").value = btn.dataset.ttype;
     });
 
-    if (userRole === "student") {
-        document.getElementById("pointsBlock")?.classList.remove("hidden");
-        loadStudentPoints();
-    }
 
     if (document.getElementById("pagesContainer")) { pagesStore = [[]]; renderConstructorUI(); }
 
@@ -3589,7 +3603,7 @@
         if (!el) return;
         if (avatarUrl) el.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
         else el.textContent = initial || '?';
-        const frame = frameId ? SHOP_CATALOG.frames.find(f=>f.id===frameId) : null;
+        const frame = frameId ? COSMETICS.frames.find(f=>f.id===frameId) : null;
         el.style.cssText = (frame ? frame.css : '') + 'border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;';
     }
 
@@ -3640,9 +3654,9 @@
                 totalPts += calcTaskPoints(d.percent||0, isOl);
             }
             const available = Math.max(0, totalPts - (inv.spent||0));
-            const frame = inv.equipped?.frame ? SHOP_CATALOG.frames.find(f=>f.id===inv.equipped.frame) : null;
-            const badge = inv.equipped?.badge ? SHOP_CATALOG.badges.find(b=>b.id===inv.equipped.badge) : null;
-            const titleItem = inv.equipped?.title ? SHOP_CATALOG.titles.find(t=>t.id===inv.equipped.title) : null;
+            const frame = inv.equipped?.frame ? COSMETICS.frames.find(f=>f.id===inv.equipped.frame) : null;
+            const badge = inv.equipped?.badge ? COSMETICS.badges.find(b=>b.id===inv.equipped.badge) : null;
+            const titleItem = inv.equipped?.title ? COSMETICS.titles.find(t=>t.id===inv.equipped.title) : null;
             const awardIds = new Set(); awardsSnap.forEach(d=>awardIds.add(d.data().awardId));
             const avatarStyle = (frame ? frame.css : '') + 'border-radius:18px;overflow:hidden;width:88px;height:88px;display:flex;align-items:center;justify-content:center;background:#dbeafe;margin:16px auto 8px;';
             const avatarInner = avatarUrl ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">` : `<span style="font-size:2rem;font-weight:800;color:#1862CF;">${initial}</span>`;
@@ -3669,7 +3683,6 @@
     const _origSaveInventory = savePlayerInventory;
     savePlayerInventory = async function() {
         await _origSaveInventory();
-        if (userRole === 'student') setTimeout(loadStudentPoints, 300);
     };
 
     /* ===== ПРИМЕНЯЕМ АВАТАР И ИНВЕНТАРЬ ПОСЛЕ ВХОДА ===== */
