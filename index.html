@@ -1187,48 +1187,6 @@
 
 <script>
     // Вход — с полным сбросом состояния после выхода
-    document.getElementById('loginBtn')?.addEventListener('click', function() {
-        var email = document.getElementById('loginEmail').value.trim();
-        var pass  = document.getElementById('loginPassword').value;
-        var btn   = document.getElementById('loginBtn');
-        var err   = document.getElementById('loginError');
-
-        if (!email || !pass) {
-            err.textContent = 'Заполните Email и пароль';
-            err.classList.remove('hidden');
-            ['loginEmail','loginPassword'].forEach(function(id) {
-                var el = document.getElementById(id);
-                el.classList.add('shake');
-                el.style.borderColor = '#ef4444';
-                setTimeout(function(){ el.classList.remove('shake'); el.style.borderColor=''; }, 500);
-            });
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = 'Вход...';
-        err.classList.add('hidden');
-
-        auth.signInWithEmailAndPassword(email, pass)
-            .then(function() { /* onAuthStateChanged сделает всё */ })
-            .catch(function() {
-                err.textContent = 'Неверный email или пароль';
-                err.classList.remove('hidden');
-                btn.disabled = false;
-                btn.textContent = 'Войти';
-                var passEl = document.getElementById('loginPassword');
-                passEl.classList.add('shake');
-                passEl.style.borderColor = '#ef4444';
-                setTimeout(function(){ passEl.classList.remove('shake'); passEl.style.borderColor=''; }, 500);
-            });
-    });
-
-    ['loginEmail','loginPassword'].forEach(function(id) {
-        document.getElementById(id)?.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') document.getElementById('loginBtn')?.click();
-        });
-    });
-</script>
 
 <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
 <div id="mainApp" class="hidden min-h-screen flex flex-col">
@@ -1322,7 +1280,7 @@
             </div>
         </div>
     </div>
-    <div class="bottom-nav fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-2 px-4 z-20">
+    <div class="bottom-nav fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-2 px-4 z-20" id="bottomNav" style="display:none;">
         <button data-nav="tasks" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-tasks text-xl"></i><span class="text-xs mt-1">Задания</span></button>
         <button data-nav="constructor" class="nav-item mentor-only flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-pen-ruler text-xl"></i><span class="text-xs mt-1">Конструктор</span></button>
         <button data-nav="notifications" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600 relative">
@@ -1551,6 +1509,43 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth(), db = firebase.firestore();
 
+    /* ===== ОБРАБОТЧИКИ ВХОДА ===== */
+    function doLogin() {
+        const email = (document.getElementById('loginEmail')?.value || '').trim();
+        const pass  = document.getElementById('loginPassword')?.value || '';
+        const btn   = document.getElementById('loginBtn');
+        const err   = document.getElementById('loginError');
+        if (!email || !pass) {
+            if (err) { err.textContent = 'Заполните Email и пароль'; err.classList.remove('hidden'); }
+            ['loginEmail','loginPassword'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.add('shake');
+                el.style.borderColor = '#ef4444';
+                setTimeout(() => { el.classList.remove('shake'); el.style.borderColor = ''; }, 500);
+            });
+            return;
+        }
+        if (btn) { btn.disabled = true; btn.textContent = 'Вход...'; }
+        if (err) err.classList.add('hidden');
+        auth.signInWithEmailAndPassword(email, pass)
+            .catch(() => {
+                if (err) { err.textContent = 'Неверный email или пароль'; err.classList.remove('hidden'); }
+                if (btn) { btn.disabled = false; btn.textContent = 'Войти'; }
+                const passEl = document.getElementById('loginPassword');
+                if (passEl) {
+                    passEl.classList.add('shake');
+                    passEl.style.borderColor = '#ef4444';
+                    setTimeout(() => { passEl.classList.remove('shake'); passEl.style.borderColor = ''; }, 500);
+                }
+            });
+    }
+
+    document.getElementById('loginBtn')?.addEventListener('click', doLogin);
+    ['loginEmail','loginPassword'].forEach(id => {
+        document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    });
+
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
     let sessionReadSet = new Set(); // Фикс 8: прочитанные уведомления из Firestore
     let currentTask = null, currentPagesArray = [], currentPageAnswers = [], currentPage = 0;
@@ -1625,6 +1620,7 @@
             }
             document.getElementById("authScreen").classList.add("hidden");
             document.getElementById("mainApp").classList.remove("hidden");
+            document.getElementById("bottomNav").style.display = "";
             document.getElementById("userDisplayName").innerText = userDisplayName;
             document.getElementById("profileName").innerText = userDisplayName;
             document.getElementById("profileEmail").innerText = user.email;
@@ -1677,6 +1673,7 @@
 
             document.getElementById("authScreen").classList.remove("hidden");
             document.getElementById("mainApp").classList.add("hidden");
+            document.getElementById("bottomNav").style.display = "none";
 
             const lb = document.getElementById('loginBtn');
             if (lb) { lb.disabled = false; lb.textContent = 'Войти'; }
