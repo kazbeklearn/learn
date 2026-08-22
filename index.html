@@ -1185,9 +1185,6 @@
     </div>
 </div>
 
-<script>
-    // Вход — с полным сбросом состояния после выхода
-
 <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
 <div id="mainApp" class="hidden min-h-screen flex flex-col">
     <div class="white-header py-2 px-4 flex justify-center items-center sticky top-0 z-20 bg-white">
@@ -2499,10 +2496,6 @@
     document.getElementById("customizeModal")?.addEventListener("click", (e) => { if(e.target===document.getElementById("customizeModal")) document.getElementById("customizeModal").classList.add("hidden"); });
 
     document.getElementById("awardsBtn")?.addEventListener("click", () => {
-        document.getElementById("awardsModal").classList.remove("hidden");
-        loadAwards();
-    });
-
         document.getElementById("awardsModal").classList.remove("hidden");
         loadAwards();
     });
