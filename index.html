@@ -1256,6 +1256,7 @@
         </div>
         <div id="profilePanel" class="tab-content hidden w-full">
             <div class="bg-white rounded-2xl p-5 text-center">
+                <!-- Аватар -->
                 <div class="relative inline-block mx-auto mb-3">
                     <div class="w-24 h-24 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl font-bold text-blue-700 overflow-hidden" id="profileAvatar"></div>
                     <button id="changeAvatarBtn" class="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs shadow-md hover:bg-blue-700" title="Изменить фото">
@@ -1266,14 +1267,40 @@
                 <h2 id="profileName" class="text-xl font-bold"></h2>
                 <p id="profileEmail" class="text-gray-500 text-sm mt-1"></p>
                 <p class="mt-2"><span class="font-semibold">Роль:</span> <span id="profileRole"></span> &nbsp;|&nbsp; <span class="font-semibold">Класс:</span> <span id="profileClass"></span></p>
-                
+
+                <!-- Кнопки для УЧЕНИКА — сетка 2x2 -->
+                <div class="student-only hidden mt-4 grid grid-cols-2 gap-2">
+                    <button id="awardsBtn" class="flex flex-col items-center justify-center gap-1.5 bg-amber-50 text-amber-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-amber-100 aspect-square">
+                        <i class="fas fa-trophy text-2xl"></i>
+                        <span class="text-xs font-bold leading-tight">Награды</span>
+                    </button>
+                    <button id="customizeBtn" class="flex flex-col items-center justify-center gap-1.5 bg-purple-50 text-purple-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-purple-100 aspect-square">
+                        <i class="fas fa-palette text-2xl"></i>
+                        <span class="text-xs font-bold leading-tight">Украшения</span>
+                    </button>
+                    <button id="logoutBtnBottom" class="col-span-2 bg-red-500 text-white py-2.5 px-5 rounded-2xl font-bold transition-all hover:bg-red-600">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Выйти
+                    </button>
                 </div>
-                <button id="aboutPlatformBtn" class="mt-4 bg-blue-100 text-blue-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-blue-200"><i class="fas fa-info-circle mr-2"></i>О платформе</button>
-                <button id="awardsBtn" class="student-only hidden mt-3 bg-amber-50 text-amber-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-amber-100"><i class="fas fa-trophy mr-2"></i>Награды</button>
-                <button id="customizeBtn" class="mt-3 bg-purple-50 text-purple-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-purple-100"><i class="fas fa-palette mr-2"></i>Украшения профиля</button>
-                <button id="notificationsProfileBtn" class="mt-3 bg-blue-100 text-blue-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-blue-200 relative"><i class="fas fa-bell mr-2"></i>Уведомления<span id="profileNotifBadge" class="hidden ml-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full"></span></button>
-                <button id="logoutBtnBottom" class="mt-3 bg-red-500 text-white py-2 px-5 rounded-xl w-full font-bold transition-all hover:bg-red-600">Выйти</button>
-                <div class="mt-6 text-xs text-gray-400 border-t pt-4">Сайт создан в развлекательных и юмористических целях и не несёт негативный характер. Данной организации не существует.<br>Связь: <a href="mailto:mustafinamir10378@gmail.com" class="text-blue-400 hover:underline">mustafinamir10378@gmail.com</a></div>
+
+                <!-- Кнопки для УЧИТЕЛЯ -->
+                <div class="mentor-only hidden mt-4 grid grid-cols-1 gap-2">
+                    <button id="customizeBtnMentor" class="flex items-center justify-center gap-2 bg-purple-50 text-purple-700 py-2.5 px-4 rounded-2xl font-semibold transition-all hover:bg-purple-100 w-full">
+                        <i class="fas fa-palette"></i>
+                        <span class="text-sm font-bold">Украшения профиля</span>
+                    </button>
+                    <button id="logoutBtnBottomMentor" class="bg-red-500 text-white py-2.5 px-5 rounded-2xl font-bold transition-all hover:bg-red-600 w-full">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Выйти
+                    </button>
+                </div>
+
+                <!-- Баннер -->
+                <div class="mt-5 rounded-2xl overflow-hidden">
+                    <img src="img1/contact_banner.png" alt="Казбэк Learn" style="width:100%;height:auto;display:block;aspect-ratio:1983/793;object-fit:cover;" onerror="this.parentElement.style.display='none'">
+                </div>
+
+                <!-- Дисклеймер -->
+                <div class="mt-4 text-xs text-gray-400 text-center">Сайт создан в развлекательных и юмористических целях и не несёт негативный характер. Данной организации не существует.</div>
             </div>
         </div>
     </div>
@@ -1682,6 +1709,8 @@
     });
 
     document.getElementById("logoutBtnBottom")?.addEventListener("click", () => auth.signOut());
+    document.getElementById("logoutBtnBottomMentor")?.addEventListener("click", () => auth.signOut());
+    document.getElementById("customizeBtnMentor")?.addEventListener("click", openCustomize);
 
     /* ===== МОДАЛКИ ===== */
     const aboutModal = document.getElementById("aboutModal");
@@ -1789,55 +1818,50 @@
         container.innerHTML = '<div class="text-center text-gray-400 py-10"><i class="fas fa-spinner fa-spin text-2xl"></i></div>';
 
         try {
-            // Уведомления: для всех + для своей роли + для своего класса
+            // Системное уведомление — всегда первым
+            const SYSTEM_NOTIF = {
+                id: '__system_kazbek__',
+                type: 'info',
+                title: 'Что такое Казбэк Learn?',
+                body: 'Казбэк Learn — это образовательная платформа для учителей и учеников, где наставники (учителя) могут выдавать своим ученикам задания и различные курсы. 100% всех учителей выбирают нас за качество нашей платформы, удобство в использовании и интуитивный интерфейс.',
+                senderName: 'Казбэк Learn',
+                isSystem: true
+            };
+
+            // Уведомления из Firebase
             const targets = ["all"];
             if (userRole === "student") targets.push("students");
             if (userRole === "mentor") targets.push("mentors");
             if (userClass) targets.push(`class_${userClass}`);
 
-            const snap = await db.collection("notifications")
-                .where("target", "in", targets)
-                .get();
-
-            if (snap.empty) {
-                container.innerHTML = `<div class="text-center py-12 text-gray-400">
-                    <i class="fas fa-bell-slash text-4xl block mb-3 opacity-30"></i>
-                    <p class="font-medium">Нет уведомлений</p>
-                    <p class="text-sm mt-1">Здесь будут появляться сообщения от наставников</p>
-                </div>`;
-                updateNotifBadge(0);
-                return;
+            let fbDocs = [];
+            try {
+                const snap = await db.collection("notifications")
+                    .where("target", "in", targets)
+                    .get();
+                snap.forEach(doc => fbDocs.push({ id: doc.id, ...doc.data() }));
+                fbDocs.sort((a, b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+            } catch(e) {
+                console.error("Notif load error:", e);
             }
 
-            // Считаем непрочитанные
+            const allNotifs = [SYSTEM_NOTIF, ...fbDocs].slice(0, 51);
+
             let unread = 0;
-
-            // Сортируем на клиенте по дате (новые сверху)
-            const docs = [];
-            snap.forEach(doc => docs.push(doc));
-            docs.sort((a, b) => {
-                const ta = a.data().createdAt?.toMillis?.() || 0;
-                const tb = b.data().createdAt?.toMillis?.() || 0;
-                return tb - ta;
-            });
-
             container.innerHTML = "";
-            docs.slice(0, 50).forEach((doc, idx) => {
-                const n = doc.data();
-                const isUnread = !sessionReadSet.has(doc.id);
-                if (isUnread) unread++;
+
+            allNotifs.forEach((n, idx) => {
+                const isUnread = !sessionReadSet.has(n.id);
+                if (isUnread && !n.isSystem) unread++;
 
                 const iconMap = { info: { icon: 'fa-info', cls: 'info' }, alert: { icon: 'fa-exclamation-triangle', cls: 'alert' }, success: { icon: 'fa-check', cls: 'success' } };
                 const iconData = iconMap[n.type] || iconMap.info;
-
-                const timeStr = n.createdAt?.toDate
-                    ? formatNotifTime(n.createdAt.toDate())
-                    : "Только что";
+                const timeStr = n.createdAt?.toDate ? formatNotifTime(n.createdAt.toDate()) : (n.isSystem ? 'Системное' : 'Только что');
 
                 const card = document.createElement("div");
-                card.className = `notif-card ${isUnread ? 'unread' : ''}`;
+                card.className = `notif-card ${isUnread && !n.isSystem ? 'unread' : ''}`;
                 card.style.animationDelay = `${idx * 0.04}s`;
-                card.dataset.id = doc.id;
+                card.dataset.id = n.id;
                 card.innerHTML = `
                     <div class="notif-icon ${iconData.cls}"><i class="fas ${iconData.icon}"></i></div>
                     <div style="flex:1;min-width:0;">
@@ -1845,30 +1869,30 @@
                         <div class="notif-body">${escapeHtml(n.body || "")}</div>
                         <div class="notif-time">${timeStr}${n.senderName ? ` · от ${escapeHtml(n.senderName)}` : ''}</div>
                     </div>
-                    ${isUnread ? '<div class="notif-unread-dot"></div>' : ''}
-                    ${userRole === 'mentor' && n.senderId === currentUserObj.uid ? `<button class="delete-notif-btn" data-id="${doc.id}" style="background:none;border:none;color:#ef4444;font-size:1.1rem;cursor:pointer;padding:4px 6px;flex-shrink:0;border-radius:8px;" title="Удалить уведомление">🗑</button>` : ''}`;
-                // Кнопка удаления (только для автора-наставника)
+                    ${isUnread && !n.isSystem ? '<div class="notif-unread-dot"></div>' : ''}
+                    ${!n.isSystem && userRole === 'mentor' && n.senderId === currentUserObj.uid ? `<button class="delete-notif-btn" data-id="${n.id}" style="background:none;border:none;color:#ef4444;font-size:1.1rem;cursor:pointer;padding:4px 6px;flex-shrink:0;border-radius:8px;">🗑</button>` : ''}`;
+
                 const delBtn = card.querySelector('.delete-notif-btn');
                 if (delBtn) {
                     delBtn.addEventListener('click', async (e) => {
                         e.stopPropagation();
                         if (!confirm('Удалить это уведомление для всех?')) return;
                         try {
-                            await db.collection("notifications").doc(doc.id).delete();
-                            card.style.opacity = '0';
-                            card.style.transform = 'translateX(30px)';
+                            await db.collection("notifications").doc(n.id).delete();
+                            card.style.opacity = '0'; card.style.transform = 'translateX(30px)';
                             card.style.transition = 'all 0.3s ease';
-                            setTimeout(() => { card.remove(); updateNotifBadge(Math.max(0, unreadNotifCount - (isUnread ? 1 : 0))); }, 300);
+                            setTimeout(() => { card.remove(); updateNotifBadge(Math.max(0, unreadNotifCount - 1)); }, 300);
                             showToast("Уведомление удалено");
                         } catch(e) { showToast("Ошибка: " + e.message, true); }
                     });
                 }
                 card.addEventListener("click", () => {
-                    if (!sessionReadSet.has(doc.id)) {
-                        sessionReadSet.add(doc.id);
-                        db.collection("notifRead").doc(currentUserObj.uid)
-                            .set({ ids: [...sessionReadSet] })
-                            .catch(()=>{});
+                    if (!sessionReadSet.has(n.id)) {
+                        sessionReadSet.add(n.id);
+                        if (!n.isSystem) {
+                            db.collection("notifRead").doc(currentUserObj.uid)
+                                .set({ ids: [...sessionReadSet] }).catch(()=>{});
+                        }
                         card.classList.remove("unread");
                         card.querySelector(".notif-unread-dot")?.remove();
                         updateNotifBadge(Math.max(0, unreadNotifCount - 1));
