@@ -1258,7 +1258,7 @@
             <div class="bg-white rounded-2xl p-5 text-center">
                 <div class="relative inline-block mx-auto mb-3">
                     <div class="w-24 h-24 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl font-bold text-blue-700 overflow-hidden" id="profileAvatar"></div>
-                    <button id="changeAvatarBtn" class="student-only hidden absolute -bottom-1 -right-1 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs shadow-md hover:bg-blue-700" title="Изменить фото">
+                    <button id="changeAvatarBtn" class="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs shadow-md hover:bg-blue-700" title="Изменить фото">
                         <i class="fas fa-camera"></i>
                     </button>
                     <input type="file" id="avatarFileInput" accept="image/*" class="hidden">
@@ -1270,7 +1270,7 @@
                 </div>
                 <button id="aboutPlatformBtn" class="mt-4 bg-blue-100 text-blue-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-blue-200"><i class="fas fa-info-circle mr-2"></i>О платформе</button>
                 <button id="awardsBtn" class="student-only hidden mt-3 bg-amber-50 text-amber-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-amber-100"><i class="fas fa-trophy mr-2"></i>Награды</button>
-                <button id="customizeBtn" class="student-only hidden mt-3 bg-purple-50 text-purple-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-purple-100"><i class="fas fa-palette mr-2"></i>Украшения профиля</button>
+                <button id="customizeBtn" class="mt-3 bg-purple-50 text-purple-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-purple-100"><i class="fas fa-palette mr-2"></i>Украшения профиля</button>
                 <button id="notificationsProfileBtn" class="mt-3 bg-blue-100 text-blue-700 py-2 px-5 rounded-xl w-full font-semibold transition-all hover:bg-blue-200 relative"><i class="fas fa-bell mr-2"></i>Уведомления<span id="profileNotifBadge" class="hidden ml-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full"></span></button>
                 <button id="logoutBtnBottom" class="mt-3 bg-red-500 text-white py-2 px-5 rounded-xl w-full font-bold transition-all hover:bg-red-600">Выйти</button>
                 <div class="mt-6 text-xs text-gray-400 border-t pt-4">Сайт создан в развлекательных и юмористических целях и не несёт негативный характер. Данной организации не существует.<br>Связь: <a href="mailto:mustafinamir10378@gmail.com" class="text-blue-400 hover:underline">mustafinamir10378@gmail.com</a></div>
@@ -1638,22 +1638,21 @@
                 document.getElementById("pointsBlock")?.classList.remove("hidden");
                 document.querySelectorAll(".student-only").forEach(el => el.classList.remove("hidden"));
             }
-            // Загружаем прочитанные уведомления из Firestore (Фикс 8)
+            // Загружаем прочитанные уведомления из Firestore
             sessionReadSet = new Set();
             try {
                 const rdoc = await db.collection("notifRead").doc(user.uid).get();
                 if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
             } catch(e) {}
 
-            // Фикс 4: сбрасываем currentTab чтобы switchNav("tasks") всегда сработал
+            // Загружаем косметику для всех ролей (сначала сбрасываем чтобы не показывать чужую)
+            playerInventory = { equipped: {} };
+            applyEquippedItems(); // сброс визуала
+            loadPlayerInventory().then(() => { applyEquippedItems(); initAvatar(); });
+
             currentTab = null;
             switchNav("tasks"); loadTasks();
             checkUnreadNotifs();
-            if (userRole === 'student') {
-                setTimeout(showUnreadPopups, 1200);
-                loadPlayerInventory().then(() => { applyEquippedItems(); initAvatar(); });
-            }
-            // Сбрасываем кнопку входа
             const lb = document.getElementById('loginBtn');
             if (lb) { lb.disabled = false; lb.textContent = 'Войти'; }
         } else {
@@ -1667,6 +1666,7 @@
             pagesStore = [[]];
             isResultPage = false;
             sessionReadSet = new Set(); // сброс прочитанных
+            playerInventory = { equipped: {} }; // сброс косметики
 
             document.getElementById("authScreen").classList.remove("hidden");
             document.getElementById("mainApp").classList.add("hidden");
@@ -1824,7 +1824,7 @@
             container.innerHTML = "";
             docs.slice(0, 50).forEach((doc, idx) => {
                 const n = doc.data();
-                const isUnread = !readSet.has(doc.id);
+                const isUnread = !sessionReadSet.has(doc.id);
                 if (isUnread) unread++;
 
                 const iconMap = { info: { icon: 'fa-info', cls: 'info' }, alert: { icon: 'fa-exclamation-triangle', cls: 'alert' }, success: { icon: 'fa-check', cls: 'success' } };
@@ -1992,7 +1992,7 @@
             if (userClass) targets.push(`class_${userClass}`);
             const snap = await db.collection("notifications").where("target", "in", targets).get();
             let unread = 0;
-            snap.forEach(doc => { if (!readSet.has(doc.id)) unread++; });
+            snap.forEach(doc => { if (!sessionReadSet.has(doc.id)) unread++; });
             updateNotifBadge(unread);
         } catch(e) {}
     }
@@ -2050,7 +2050,7 @@
             else badges += `<span class="task-badge" style="background:#f0fdf4;color:#15803d"><i class="fas fa-users mr-1"></i>${escapeHtml(t.targetClass)}</span>`;
             badges += `<span class="task-badge" style="background:#faf5ff;color:#7c3aed"><i class="fas fa-file-alt mr-1"></i>${pagesCount} стр.</span>`;
             if (t.timeLimitSeconds) badges += `<span class="task-badge" style="background:#fff7ed;color:#c2410c"><i class="fas fa-clock mr-1"></i>${formatSeconds(t.timeLimitSeconds)}</span>`;
-            if (t.deadline) badges += `<span class="task-badge" style="background:${expired?'#fef2f2;color:#dc2626':'#f0f9ff;color:#0369a1'}"><i class="fas fa-calendar mr-1"></i>${expired?'Истёк: ':'До: '}${new Date(t.deadline).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}</span>`;
+            if (t.deadline) badges += `<span class="task-badge" style="background:${expired?'#fef2f2;color:#dc2626':'#f0f9ff;color:#0369a1'}"><i class="fas fa-calendar mr-1"></i>${expired?'Истёк: ':'До: '}${new Date(t.deadline).toLocaleDateString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`;
             if (completed) {
                 const pct = completed.percent || 0;
                 const badgeStyle = pct >= 80
@@ -2940,10 +2940,16 @@
             } else {
                 html += `<span class="choice-option-text">${escapeHtml(optObj.text||'')}</span>`;
             }
+            // Аудио варианта
             if (optObj.audios && optObj.audios.length) {
                 optObj.audios.forEach(a => {
-                    html += `<audio controls src="${a.data}" style="height:22px;width:110px;margin-left:6px;" title="${escapeHtml(a.name||'Звук')}"></audio>`;
+                    if (a.data) {
+                        html += `<audio controls src="${a.data}" style="height:28px;width:130px;margin-left:4px;" title="${escapeHtml(a.name||'Звук')}"></audio>`;
+                    }
                 });
+            } else if (optObj.hasAudio) {
+                // Аудио было но не сохранилось в Firebase (слишком большое)
+                html += `<span style="font-size:0.72rem;color:#94a3b8;margin-left:6px;">🔇 Аудио не сохранено (слишком большой файл)</span>`;
             }
             return html;
         }
@@ -3171,10 +3177,10 @@
             clearTaskTimer();
             showToast(`Сохранено! ${earnedPoints}/${totalPoints} (${percent}%)`);
             if (percent >= 60) launchConfetti();
-            const closeBtn = document.getElementById("closeTaskBtn");
-            if (closeBtn) closeBtn.onclick = () => document.getElementById("taskFullscreen").classList.add("hidden");
+            // Фикс 5: автоматически закрываем окно задания после сохранения
+            document.getElementById("taskFullscreen").classList.add("hidden");
             await checkAndGrantAwards();
-            loadTasks();
+            await loadTasks(); // ждём обновления списка чтобы плашка показала результат
         } catch(err) {
             showToast("Ошибка: " + err.message, true);
             console.error("SaveResult error:", err);
@@ -3349,7 +3355,7 @@
                                     </div>
                                     <div class="opt-audio-list" style="margin-top:5px;display:flex;flex-direction:column;gap:3px;"></div>
                                     <button class="opt-add-audio text-blue-500 text-xs mt-1"><i class="fas fa-music mr-1"></i>+ Звук к варианту</button>
-                                    <input type="file" accept="audio/*" class="opt-audio-file hidden">`;
+                                    <input type="file" accept="audio/*,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/m4a,audio/aac" class="opt-audio-file hidden">`;
                                 optionsList.appendChild(optDiv);
 
                                 // Переключатели тип
@@ -3408,7 +3414,7 @@
                     const elemAudios = el.audios || [];
                     let audHtml = `<div class="elem-audio-list mt-2" style="display:flex;flex-direction:column;gap:4px;">`;
                     elemAudios.forEach((a,ai) => { audHtml += `<div style="display:flex;align-items:center;gap:5px;"><span style="font-size:0.7rem;color:#64748b;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.name||'Звук'}</span><audio controls src="${a.data}" style="height:26px;flex:1;"></audio><button class="remove-elem-audio text-red-400 text-xs" data-ai="${ai}">✖</button></div>`; });
-                    audHtml += `</div><div class="mt-1 flex gap-2 items-center"><button class="add-elem-audio-btn text-blue-600 text-sm"><i class="fas fa-music mr-1"></i>+ Звук к вопросу</button><input type="file" accept="audio/*" class="elem-audio-file hidden" multiple></div>`;
+                    audHtml += `</div><div class="mt-1 flex gap-2 items-center"><button class="add-elem-audio-btn text-blue-600 text-sm"><i class="fas fa-music mr-1"></i>+ Звук к вопросу</button><input type="file" accept="audio/*,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/m4a,audio/aac" class="elem-audio-file hidden" multiple></div>`;
                     elemCard.insertAdjacentHTML('beforeend', audHtml);
 
                     // Аудио к элементу — обработчики
@@ -3484,14 +3490,10 @@
                 pagesObj[i] = pagesStore[i].map(el => {
                     const base = { type: el.type, points: Number(el.points) || (el.type === 'text' ? 0 : 1), content: el.content || "" };
                     if (el.type === 'choice' || el.type === 'multichoice') {
-                        // Сохраняем варианты как объекты, но аудио храним отдельно (слишком большое для Firestore)
+                        // Сохраняем варианты как объекты — аудио не сохраняем в Firestore (ограничение вложенности)
                         base.options = (el.options || []).map(o => {
                             const obj = typeof o === 'string' ? {text:o,type:'text'} : {...o};
-                            // Убираем аудио из вариантов — Firestore не поддерживает вложенные массивы с большими данными
-                            if (obj.audios) {
-                                obj.hasAudio = true; // флаг что аудио было
-                                delete obj.audios;
-                            }
+                            delete obj.audios; // Firestore не поддерживает вложенные массивы объектов
                             return obj;
                         });
                         if (el.type === 'choice') base.correctAnswer = [el.correctIndex || 0];
