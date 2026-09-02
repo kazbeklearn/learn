@@ -398,6 +398,18 @@
         .task-element-card { background: #f9fafb; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
         .student-result-row { border-bottom: 1px solid #e5e7eb; padding: 12px; cursor: pointer; transition: all 0.2s; }
         .student-result-row:hover { background: #f3f4f6; transform: translateX(5px); }
+
+        /* ===== ШКОЛА / СТАТЬИ ===== */
+        .article-card { background:white; border-radius:20px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #e5e7eb; animation:fadeSlideUp 0.3s ease both; }
+        .article-card-img { width:100%; max-height:220px; object-fit:cover; display:block; }
+        .article-category-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:100px; font-size:0.72rem; font-weight:700; }
+        .article-body { font-size:0.92rem; line-height:1.7; color:#374151; }
+        .article-body h2 { font-size:1.15rem; font-weight:800; color:#0d2a5e; margin:12px 0 6px; }
+        .article-body h3 { font-size:1rem; font-weight:700; color:#1e40af; margin:10px 0 4px; }
+        .article-body img { max-width:100%; border-radius:12px; margin:8px 0; }
+        .article-body p { margin-bottom:6px; }
+        #articleBody:empty:before { content:attr(data-placeholder); color:#9ca3af; pointer-events:none; }
+        .school-badge { display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#1862CF; border-radius:100px; padding:4px 12px; font-size:0.8rem; font-weight:700; margin-top:6px; }
         .deadline-picker { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         
         /* ===== ФОН АВТОРИЗАЦИИ ===== */
@@ -1192,7 +1204,7 @@
     </div>
     <div id="greetingContainer" class="greeting-blue-block hidden">
         <div class="flex items-center gap-4">
-            <div class="bg-white/20 rounded-full w-14 h-14 flex items-center justify-center text-white text-2xl font-bold" id="greetingAvatar">👤</div>
+            <div class="rounded-full w-14 h-14 flex items-center justify-center text-white text-2xl font-bold overflow-hidden flex-shrink-0" id="greetingAvatar" style="background:rgba(255,255,255,0.2);">👤</div>
             <div><div id="greetingText" class="text-blue-100 text-base font-medium"></div><div id="userDisplayName" class="text-white text-2xl font-extrabold"></div></div>
         </div>
     </div>
@@ -1214,9 +1226,55 @@
                 <h2 class="text-xl font-extrabold text-gray-900">Уведомления</h2>
                 <button id="markAllReadBtn" class="text-xs text-blue-700 font-semibold py-1 px-3 bg-blue-50 rounded-full hover:bg-blue-100 transition-all">Всё прочитано</button>
             </div>
+            <!-- Кнопка отправить уведомление — для учителей -->
+            <button id="sendNotifFromFeedBtn" class="mentor-only hidden w-full mb-4 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2.5 rounded-2xl hover:bg-blue-700 transition-all">
+                <i class="fas fa-paper-plane"></i> Отправить уведомление
+            </button>
             <div id="notificationsListContainer" class="space-y-3">
                 <div class="text-center text-gray-400 py-10">Загрузка...</div>
             </div>
+        </div>
+
+        <div id="schoolPanel" class="tab-content hidden w-full">
+            <!-- Шапка школы -->
+            <div id="schoolHeader" class="rounded-2xl p-4 mb-4" style="background:linear-gradient(135deg,#1862CF,#2563eb);color:white;">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-school text-2xl opacity-80"></i>
+                    <div>
+                        <div class="text-xs opacity-70 font-medium">Ваша школа</div>
+                        <div id="schoolNameDisplay" class="text-lg font-extrabold">Загрузка...</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Редактор статьи для учителя -->
+            <div id="articleEditorBlock" class="mentor-only hidden bg-white rounded-2xl p-4 mb-4 shadow-sm">
+                <h3 class="font-extrabold text-base mb-3">📝 Написать статью</h3>
+                <select id="articleCategory" class="w-full border rounded-xl p-2.5 mb-3 text-sm">
+                    <option value="news">📢 Новости</option>
+                    <option value="announcement">📋 Объявление</option>
+                    <option value="event">🎉 Мероприятие</option>
+                    <option value="other">📌 Другое</option>
+                </select>
+                <input id="articleTitle" type="text" placeholder="Заголовок статьи..." maxlength="120"
+                    class="w-full border rounded-xl p-2.5 mb-2 text-sm font-bold focus:outline-none focus:border-blue-400">
+                <div id="articleToolbar" class="flex gap-1 mb-2 flex-wrap">
+                    <button class="art-tool px-2 py-1 rounded-lg bg-gray-100 text-xs font-bold hover:bg-gray-200" data-cmd="bold"><b>Ж</b></button>
+                    <button class="art-tool px-2 py-1 rounded-lg bg-gray-100 text-xs font-bold hover:bg-gray-200" data-cmd="italic"><i>К</i></button>
+                    <button class="art-tool px-3 py-1 rounded-lg bg-gray-100 text-xs font-bold hover:bg-gray-200" data-cmd="h2">H2</button>
+                    <button class="art-tool px-3 py-1 rounded-lg bg-gray-100 text-xs font-bold hover:bg-gray-200" data-cmd="h3">H3</button>
+                    <button class="art-tool px-2 py-1 rounded-lg bg-gray-100 text-xs font-bold hover:bg-gray-200" data-cmd="image">🖼</button>
+                </div>
+                <div id="articleBody" contenteditable="true"
+                    class="w-full border rounded-xl p-3 min-h-32 text-sm focus:outline-none focus:border-blue-400"
+                    style="line-height:1.7;"
+                    data-placeholder="Текст статьи..."></div>
+                <input type="file" id="articleImageInput" accept="image/*" class="hidden">
+                <button id="publishArticleBtn" class="mt-3 w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition-all">
+                    <i class="fas fa-paper-plane mr-2"></i>Опубликовать
+                </button>
+            </div>
+            <!-- Лента статей -->
+            <div id="articlesFeed" class="space-y-4"></div>
         </div>
         <div id="constructorPanel" class="tab-content hidden w-full">
             <div class="bg-white rounded-2xl p-5 shadow-md mb-6">
@@ -1267,12 +1325,13 @@
                 <h2 id="profileName" class="text-xl font-bold"></h2>
                 <p id="profileEmail" class="text-gray-500 text-sm mt-1"></p>
                 <p class="mt-2"><span class="font-semibold">Роль:</span> <span id="profileRole"></span> &nbsp;|&nbsp; <span class="font-semibold">Класс:</span> <span id="profileClass"></span></p>
+                <div id="profileSchoolBadge" class="hidden"><span class="school-badge"><i class="fas fa-school"></i><span id="profileSchoolName"></span></span></div>
 
                 <!-- Кнопки для УЧЕНИКА — сетка 2x2 -->
                 <div class="student-only hidden mt-4 grid grid-cols-2 gap-2">
                     <button id="awardsBtn" class="flex flex-col items-center justify-center gap-1.5 bg-amber-50 text-amber-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-amber-100 aspect-square">
                         <i class="fas fa-trophy text-2xl"></i>
-                        <span class="text-xs font-bold leading-tight">Награды</span>
+                        <span class="text-xs font-bold leading-tight">Достижения</span>
                     </button>
                     <button id="customizeBtn" class="flex flex-col items-center justify-center gap-1.5 bg-purple-50 text-purple-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-purple-100 aspect-square">
                         <i class="fas fa-palette text-2xl"></i>
@@ -1306,6 +1365,7 @@
     </div>
     <div class="bottom-nav fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-2 px-4 z-20" id="bottomNav" style="display:none;">
         <button data-nav="tasks" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-tasks text-xl"></i><span class="text-xs mt-1">Задания</span></button>
+        <button data-nav="school" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-school text-xl"></i><span class="text-xs mt-1">Школа</span></button>
         <button data-nav="constructor" class="nav-item mentor-only flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-pen-ruler text-xl"></i><span class="text-xs mt-1">Конструктор</span></button>
         <button data-nav="notifications" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600 relative">
             <span class="relative inline-block">
@@ -1424,7 +1484,7 @@
             <h2 class="font-extrabold text-xl text-gray-900">🎨 Украшения профиля</h2>
             <button id="closeCustomizeBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">&times;</button>
         </div>
-        <p class="text-xs text-gray-400 px-5 mb-3">Все элементы доступны бесплатно</p>
+        
         <div class="flex gap-2 px-5 pb-2 flex-shrink-0">
             <button class="cust-tab flex-1 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white" data-cat="frames">🖼 Рамки</button>
             <button class="cust-tab flex-1 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600" data-cat="badges">🏷 Значки</button>
@@ -1451,7 +1511,7 @@
 <div id="awardsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
     <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:85vh;display:flex;flex-direction:column;">
         <div class="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
-            <h2 class="font-extrabold text-xl text-gray-900">🏅 Мои награды</h2>
+            <h2 class="font-extrabold text-xl text-gray-900">🏅 Мои достижения</h2>
             <button id="closeAwardsBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">&times;</button>
         </div>
         <div id="awardsListContainer" class="flex-1 overflow-y-auto px-5 pb-8 space-y-3">
@@ -1571,6 +1631,7 @@
     });
 
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
+    let userSchool = null;
     let sessionReadSet = new Set(); // Фикс 8: прочитанные уведомления из Firestore
     let currentTask = null, currentPagesArray = [], currentPageAnswers = [], currentPage = 0;
     let completedTasksData = new Map();
@@ -1593,7 +1654,6 @@
             return pages.map((page) => page.map((el) => {
                 const elCopy = {...el};
                 if (el.hasImage && el.mediaKey && allMedia[el.mediaKey]) elCopy.imageBase64 = allMedia[el.mediaKey].imageBase64 || null;
-                if (el.hasAudio && el.audioKey && allMedia[el.audioKey]) elCopy.audios = allMedia[el.audioKey].audios || [];
                 if (elCopy.options) {
                     elCopy.options = elCopy.options.map(opt => {
                         if (opt.hasImage && opt.mediaKey && allMedia[opt.mediaKey]) return {...opt, image: allMedia[opt.mediaKey].image};
@@ -1632,7 +1692,18 @@
 
     async function getUserDisplayName(uid) { try { const doc = await db.collection("users").doc(uid).get(); return doc.exists ? (doc.data().displayName || doc.data().email?.split('@')[0] || "Простолюдин") : "Простолюдин"; } catch(e) { return "Простолюдин"; } }
 
-    async function loadUserRole(uid) { try { const doc = await db.collection("users").doc(uid).get(); if (doc.exists) { userRole = doc.data().role; userClass = doc.data().class || ""; userDisplayName = doc.data().displayName || doc.data().email?.split('@')[0] || "Пользователь"; return true; } else { showToast("Роль не назначена", true); return false; } } catch(e) { showToast("Ошибка", true); return false; } }
+    async function loadUserRole(uid) {
+        try {
+            const doc = await db.collection("users").doc(uid).get();
+            if (doc.exists) {
+                userRole = doc.data().role;
+                userClass = doc.data().class || "";
+                userDisplayName = doc.data().displayName || doc.data().email?.split('@')[0] || "Пользователь";
+                userSchool = doc.data().school || null;
+                return true;
+            } else { showToast("Роль не назначена", true); return false; }
+        } catch(e) { showToast("Ошибка", true); return false; }
+    }
 
     /* ===== КОНФЕТТИ ===== */
     function launchConfetti() {
@@ -1707,7 +1778,7 @@
         } else {
             // Фикс 3: полный сброс состояния при выходе
             currentUserObj = null; userRole = null; userClass = null;
-            userDisplayName = "Пользователь"; currentTab = null;
+            userDisplayName = "Пользователь"; userSchool = null; currentTab = null;
             completedTasksData.clear(); mentorStudentsList = [];
             teachersCache.clear(); currentTask = null;
             currentPagesArray = []; currentPageAnswers = [];
@@ -1747,7 +1818,7 @@
     feedbackModal?.addEventListener("click", (e) => { if (e.target === feedbackModal) feedbackModal.classList.add("hidden"); });
 
     /* ===== НАВИГАЦИЯ ===== */
-    const TAB_ORDER = ['tasks', 'notifications', 'constructor', 'profile'];
+    const TAB_ORDER = ['tasks', 'school', 'notifications', 'constructor', 'profile'];
     let currentTab = 'tasks';
 
     function switchNav(tab) {
@@ -1793,6 +1864,7 @@
         document.getElementById("greetingContainer").classList.toggle("hidden", tab !== "tasks");
         if (tab === "constructor" && userRole === "mentor") setTimeout(renderConstructorUI, 120);
         if (tab === "notifications") setTimeout(loadNotifications, 120);
+        if (tab === "school") setTimeout(loadSchoolPage, 120);
 
     }
 
@@ -2243,18 +2315,6 @@
             check: (r) => r.perfectOlympiads >= 1
         },
         {
-            id: 'total_pts_30',
-            emoji: '⭐', title: 'Коллекционер',
-            desc: 'Набрать 30 баллов суммарно',
-            check: (r) => r.totalPts >= 30
-        },
-        {
-            id: 'total_pts_100',
-            emoji: '🌟', title: 'Эрудит',
-            desc: 'Набрать 100 баллов суммарно',
-            check: (r) => r.totalPts >= 100
-        },
-        {
             id: 'no_fail_10',
             emoji: '🛡️', title: 'Безупречный',
             desc: 'Выполнить 10 заданий без единого результата ниже 60%',
@@ -2315,11 +2375,11 @@
                         studentId: currentUserObj.uid, awardId: award.id,
                         title: award.title, grantedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    showToast(`🏅 Новая награда: ${award.title}!`);
+                    showToast(`🏅 Новое достижение: ${award.title}!`);
                     showPopup({
                         icon: award.emoji,
                         iconClass: 'award',
-                        title: `Новая награда!`,
+                        title: `Новое достижение!`,
                         sub: award.title + ' — ' + award.desc,
                         duration: 5500
                     });
@@ -2553,7 +2613,210 @@
             document.getElementById("awardsModal").classList.add("hidden");
     });
 
-    /* ===== СЕРТИФИКАТ — поверх шаблона PNG ===== */
+    /* ===== ШКОЛА ===== */
+    async function loadSchoolPage() {
+        if (!currentUserObj) return;
+        const schoolNameEl = document.getElementById("schoolNameDisplay");
+        const feedEl = document.getElementById("articlesFeed");
+        const editorBlock = document.getElementById("articleEditorBlock");
+
+        // Показываем редактор только учителю
+        if (userRole === "mentor") editorBlock?.classList.remove("hidden");
+
+        // Загружаем название школы
+        try {
+            const userDoc = await db.collection("users").doc(currentUserObj.uid).get();
+            userSchool = userDoc.exists ? (userDoc.data().school || null) : null;
+        } catch(e) {}
+
+        if (!userSchool) {
+            if (schoolNameEl) schoolNameEl.textContent = "Школа не указана";
+            // Предлагаем указать школу
+            if (feedEl) feedEl.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 text-center shadow-sm">
+                    <div class="text-4xl mb-3">🏫</div>
+                    <p class="font-bold text-gray-700 mb-2">Вы не привязаны к школе</p>
+                    <p class="text-sm text-gray-400 mb-4">Попросите администратора указать вашу школу в профиле</p>
+                    ${userRole === 'mentor' ? `<div class="flex gap-2"><input id="schoolInput" type="text" placeholder="Название школы..." class="flex-1 border rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-400"><button id="saveSchoolBtn" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold">Сохранить</button></div>` : ''}
+                </div>`;
+            document.getElementById("saveSchoolBtn")?.addEventListener("click", async () => {
+                const val = document.getElementById("schoolInput")?.value.trim();
+                if (!val) return;
+                await db.collection("users").doc(currentUserObj.uid).update({ school: val });
+                userSchool = val;
+                showToast("Школа сохранена!");
+                loadSchoolPage();
+            });
+            return;
+        }
+
+        if (schoolNameEl) schoolNameEl.textContent = userSchool;
+
+        // Показываем школу в профиле
+        const badge = document.getElementById("profileSchoolBadge");
+        const nameSpan = document.getElementById("profileSchoolName");
+        if (badge && nameSpan) { nameSpan.textContent = userSchool; badge.classList.remove("hidden"); }
+
+        // Загружаем статьи этой школы
+        if (feedEl) feedEl.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-xl"></i></div>';
+        try {
+            const snap = await db.collection("articles")
+                .where("school", "==", userSchool)
+                .get();
+            const docs = [];
+            snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+            docs.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+
+            if (feedEl) {
+                if (docs.length === 0) {
+                    feedEl.innerHTML = '<div class="text-center py-8 text-gray-400">Статей пока нет. Будьте первым!</div>';
+                } else {
+                    feedEl.innerHTML = "";
+                    docs.forEach((art, idx) => renderArticleCard(art, idx, feedEl));
+                }
+            }
+        } catch(e) {
+            if (feedEl) feedEl.innerHTML = `<div class="text-red-400 text-center py-4">Ошибка: ${e.message}</div>`;
+        }
+    }
+
+    const CAT_STYLES = {
+        news:         { label:"📢 Новости",       bg:"#eff6ff", color:"#1862CF" },
+        announcement: { label:"📋 Объявление",    bg:"#fef9c3", color:"#854d0e" },
+        event:        { label:"🎉 Мероприятие",   bg:"#f0fdf4", color:"#15803d" },
+        other:        { label:"📌 Другое",         bg:"#f5f3ff", color:"#7c3aed" },
+    };
+
+    function renderArticleCard(art, idx, container) {
+        const catStyle = CAT_STYLES[art.category] || CAT_STYLES.other;
+        const timeStr = art.createdAt?.toDate ? formatNotifTime(art.createdAt.toDate()) : "Только что";
+        const likes = art.likes || 0;
+        const liked = (art.likedBy||[]).includes(currentUserObj?.uid);
+
+        const card = document.createElement("div");
+        card.className = "article-card";
+        card.style.animationDelay = `${idx*0.05}s`;
+        card.innerHTML = `
+            ${art.imageUrl ? `<img src="${art.imageUrl}" class="article-card-img" alt="">` : ''}
+            <div class="p-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="article-category-badge" style="background:${catStyle.bg};color:${catStyle.color}">${catStyle.label}</span>
+                    <span class="text-xs text-gray-400 ml-auto">${timeStr}</span>
+                </div>
+                <h3 class="font-extrabold text-base text-gray-900 mb-2">${escapeHtml(art.title||'')}</h3>
+                <div class="article-body">${art.body||''}</div>
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                    <div class="flex items-center gap-2 text-xs text-gray-400">
+                        <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">${(art.authorName||'?').charAt(0)}</div>
+                        ${escapeHtml(art.authorName||'Автор')}
+                    </div>
+                    <button class="like-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition-all ${liked?'bg-red-100 text-red-500':'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-400'}"
+                        data-id="${art.id}" data-liked="${liked}">
+                        ${liked?'❤️':'🤍'} ${likes}
+                    </button>
+                </div>
+            </div>`;
+
+        card.querySelector(".like-btn")?.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const btn = card.querySelector(".like-btn");
+            const wasLiked = btn.dataset.liked === "true";
+            try {
+                const ref = db.collection("articles").doc(art.id);
+                if (wasLiked) {
+                    await ref.update({
+                        likes: firebase.firestore.FieldValue.increment(-1),
+                        likedBy: firebase.firestore.FieldValue.arrayRemove(currentUserObj.uid)
+                    });
+                    btn.innerHTML = `🤍 ${(art.likes||1)-1}`;
+                    btn.className = btn.className.replace("bg-red-100 text-red-500","bg-gray-100 text-gray-500");
+                    btn.dataset.liked = "false";
+                    art.likes = Math.max(0,(art.likes||1)-1);
+                } else {
+                    await ref.update({
+                        likes: firebase.firestore.FieldValue.increment(1),
+                        likedBy: firebase.firestore.FieldValue.arrayUnion(currentUserObj.uid)
+                    });
+                    btn.innerHTML = `❤️ ${(art.likes||0)+1}`;
+                    btn.className = btn.className.replace("bg-gray-100 text-gray-500","bg-red-100 text-red-500");
+                    btn.dataset.liked = "true";
+                    art.likes = (art.likes||0)+1;
+                }
+            } catch(err) { showToast("Ошибка: "+err.message, true); }
+        });
+        container.appendChild(card);
+    }
+
+    // Инструменты редактора статьи
+    document.querySelectorAll(".art-tool").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const cmd = btn.dataset.cmd;
+            const body = document.getElementById("articleBody");
+            if (!body) return;
+            body.focus();
+            if (cmd === "bold") document.execCommand("bold");
+            else if (cmd === "italic") document.execCommand("italic");
+            else if (cmd === "h2") document.execCommand("formatBlock", false, "h2");
+            else if (cmd === "h3") document.execCommand("formatBlock", false, "h3");
+            else if (cmd === "image") document.getElementById("articleImageInput")?.click();
+        });
+    });
+
+    document.getElementById("articleImageInput")?.addEventListener("change", async (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        if (file.size > 500000) { showToast("Фото до 500 КБ", true); return; }
+        const reader = new FileReader();
+        reader.onload = re => {
+            const body = document.getElementById("articleBody");
+            if (body) {
+                const img = document.createElement("img");
+                img.src = re.target.result;
+                img.style.cssText = "max-width:100%;border-radius:12px;margin:8px 0;";
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount) {
+                    const range = sel.getRangeAt(0);
+                    range.insertNode(img);
+                } else {
+                    body.appendChild(img);
+                }
+            }
+        };
+        reader.readAsDataURL(file);
+        e.target.value = "";
+    });
+
+    document.getElementById("publishArticleBtn")?.addEventListener("click", async () => {
+        if (!currentUserObj || userRole !== "mentor") return;
+        const title = document.getElementById("articleTitle")?.value.trim();
+        const bodyEl = document.getElementById("articleBody");
+        const body = bodyEl?.innerHTML?.trim();
+        const category = document.getElementById("articleCategory")?.value || "other";
+        if (!title) { showToast("Введите заголовок", true); return; }
+        if (!body || body === "") { showToast("Напишите текст статьи", true); return; }
+        if (!userSchool) { showToast("Укажите вашу школу", true); return; }
+        const btn = document.getElementById("publishArticleBtn");
+        btn.disabled = true; btn.textContent = "Публикация...";
+        try {
+            await db.collection("articles").add({
+                title, body, category,
+                school: userSchool,
+                authorId: currentUserObj.uid,
+                authorName: userDisplayName,
+                likes: 0, likedBy: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showToast("✅ Статья опубликована!");
+            if (document.getElementById("articleTitle")) document.getElementById("articleTitle").value = "";
+            if (bodyEl) bodyEl.innerHTML = "";
+            loadSchoolPage();
+        } catch(err) { showToast("Ошибка: "+err.message, true); }
+        finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane mr-2"></i>Опубликовать'; }
+    });
+
+    // 6. Кнопка отправить уведомление в сводках (для учителя)
+    document.getElementById("sendNotifFromFeedBtn")?.addEventListener("click", () => {
+        document.getElementById("sendNotifModal")?.classList.remove("hidden");
+    });
     let certTaskTitle = '';
     // Шаблон: 900×1272px (A4 portrait, судя по пропорциям картинки ~1:1.41)
     // Поля (в % от размера шаблона, измерены по картинке):
@@ -2932,18 +3195,7 @@
         const pointsLabel = el.type !== 'text' ? ` • ${el.points} ${pluralPoints(el.points)}` : '';
         let inner = '';
         if (el.imageBase64) inner += `<img src="${el.imageBase64}" class="modal-photo rounded-2xl max-h-48 mb-3 cursor-pointer w-full" style="max-height:200px;object-fit:contain;">`;
-        // Аудио элемента
-        if (el.audios && el.audios.length) {
-            inner += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">`;
-            el.audios.forEach((a,ai) => {
-                inner += `<div style="display:flex;align-items:center;gap:6px;background:#f0f6ff;border-radius:12px;padding:6px 10px;">
-                    <i class="fas fa-music" style="color:#1862CF;font-size:0.8rem;"></i>
-                    <span style="font-size:0.75rem;color:#1862CF;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(a.name||'Звук')}</span>
-                    <audio controls src="${a.data}" style="height:24px;width:120px;"></audio>
-                </div>`;
-            });
-            inner += `</div>`;
-        }
+        
 
         // Хелпер: рендер одного варианта (текст или фото + аудио)
         function renderOptContent(opt) {
@@ -2953,17 +3205,6 @@
                 html += `<img src="${optObj.image}" style="max-height:80px;border-radius:10px;object-fit:contain;display:block;margin-bottom:4px;">`;
             } else {
                 html += `<span class="choice-option-text">${escapeHtml(optObj.text||'')}</span>`;
-            }
-            // Аудио варианта
-            if (optObj.audios && optObj.audios.length) {
-                optObj.audios.forEach(a => {
-                    if (a.data) {
-                        html += `<audio controls src="${a.data}" style="height:28px;width:130px;margin-left:4px;" title="${escapeHtml(a.name||'Звук')}"></audio>`;
-                    }
-                });
-            } else if (optObj.hasAudio) {
-                // Аудио было но не сохранилось в Firebase (слишком большое)
-                html += `<span style="font-size:0.72rem;color:#94a3b8;margin-left:6px;">🔇 Аудио не сохранено (слишком большой файл)</span>`;
             }
             return html;
         }
@@ -3368,8 +3609,7 @@
                                         }
                                     </div>
                                     <div class="opt-audio-list" style="margin-top:5px;display:flex;flex-direction:column;gap:3px;"></div>
-                                    <button class="opt-add-audio text-blue-500 text-xs mt-1"><i class="fas fa-music mr-1"></i>+ Звук к варианту</button>
-                                    <input type="file" accept="audio/*,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/m4a,audio/aac" class="opt-audio-file hidden">`;
+                                    `;
                                 optionsList.appendChild(optDiv);
 
                                 // Переключатели тип
@@ -3386,21 +3626,15 @@
                                     const r = new FileReader(); r.onload = re => { el.options[optIdx].image = re.target.result; el.options[optIdx].type = 'image'; renderOptions(); }; r.readAsDataURL(f);
                                 });
                                 optDiv.querySelector('.opt-remove-img')?.addEventListener('click', () => { el.options[optIdx].image = null; el.options[optIdx].type = 'text'; renderOptions(); });
-                                // Аудио варианта
                                 const audioList = optDiv.querySelector('.opt-audio-list');
-                                (opt.audios||[]).forEach((aud, ai) => {
                                     const ad = document.createElement('div');
                                     ad.style.cssText = 'display:flex;align-items:center;gap:5px;';
                                     ad.innerHTML = `<span style="font-size:0.7rem;color:#64748b;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${aud.name||'Звук'}</span><audio controls src="${aud.data}" style="height:26px;flex:1;"></audio><button class="rem-aud text-red-400 text-xs">✖</button>`;
-                                    ad.querySelector('.rem-aud').onclick = () => { el.options[optIdx].audios.splice(ai,1); renderOptions(); };
                                     audioList.appendChild(ad);
                                 });
-                                const addAudBtn = optDiv.querySelector('.opt-add-audio');
-                                const audFile = optDiv.querySelector('.opt-audio-file');
                                 addAudBtn?.addEventListener('click', () => audFile.click());
                                 audFile?.addEventListener('change', ev => {
                                     [...ev.target.files].forEach(f => {
-                                        const r = new FileReader(); r.onload = re => { if (!el.options[optIdx].audios) el.options[optIdx].audios=[]; el.options[optIdx].audios.push({name:f.name,data:re.target.result}); renderOptions(); }; r.readAsDataURL(f);
                                     });
                                 });
                                 // Checkbox multi
@@ -3417,33 +3651,11 @@
                                     else if (el.correctIndex>=el.options.length) el.correctIndex=0;
                                     renderOptions();
                                 };
-                            });
                             if (correctSelect) correctSelect.onchange = e => { el.correctIndex = parseInt(e.target.value); };
                         }
                         renderOptions();
                         elemCard.querySelector('.add-option-btn').onclick = () => { el.options.push({text:`Вариант ${el.options.length+1}`,type:'text'}); renderOptions(); };
                     }
-
-                    // Аудио к элементу (вопросу)
-                    const elemAudios = el.audios || [];
-                    let audHtml = `<div class="elem-audio-list mt-2" style="display:flex;flex-direction:column;gap:4px;">`;
-                    elemAudios.forEach((a,ai) => { audHtml += `<div style="display:flex;align-items:center;gap:5px;"><span style="font-size:0.7rem;color:#64748b;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.name||'Звук'}</span><audio controls src="${a.data}" style="height:26px;flex:1;"></audio><button class="remove-elem-audio text-red-400 text-xs" data-ai="${ai}">✖</button></div>`; });
-                    audHtml += `</div><div class="mt-1 flex gap-2 items-center"><button class="add-elem-audio-btn text-blue-600 text-sm"><i class="fas fa-music mr-1"></i>+ Звук к вопросу</button><input type="file" accept="audio/*,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/m4a,audio/aac" class="elem-audio-file hidden" multiple></div>`;
-                    elemCard.insertAdjacentHTML('beforeend', audHtml);
-
-                    // Аудио к элементу — обработчики
-                    elemCard.querySelectorAll('.remove-elem-audio').forEach(btn => {
-                        btn.onclick = () => { el.audios.splice(parseInt(btn.dataset.ai),1); renderElements(); };
-                    });
-                    const addElemAudio = elemCard.querySelector('.add-elem-audio-btn');
-                    const elemAudioFile = elemCard.querySelector('.elem-audio-file');
-                    addElemAudio?.addEventListener('click', () => elemAudioFile.click());
-                    elemAudioFile?.addEventListener('change', ev => {
-                        [...ev.target.files].forEach(f => {
-                            const r = new FileReader(); r.onload = re => { if (!pagesStore[pageIdx][elemIdx].audios) pagesStore[pageIdx][elemIdx].audios=[]; pagesStore[pageIdx][elemIdx].audios.push({name:f.name,data:re.target.result}); renderElements(); }; r.readAsDataURL(f);
-                        });
-                    });
-
                     const addPhotoBtn = elemCard.querySelector('.add-photo-btn');
                     const fileInput = elemCard.querySelector('.photo-file');
                     if (addPhotoBtn) addPhotoBtn.onclick = () => fileInput.click();
@@ -3540,13 +3752,7 @@
                         base.mediaKey = mkey;
                     }
 
-                    // Аудио элемента — сохраняем отдельно (не в pages)
-                    if (el.audios && el.audios.length) {
-                        const mkey = `${i}_${elemIdx}_audio`;
-                        mediaStore[mkey] = { audios: el.audios };
-                        base.hasAudio = true;
-                        base.audioKey = mkey;
-                    }
+
 
                     return base;
                 });
@@ -3667,8 +3873,23 @@
 
     async function initAvatar() {
         currentAvatarUrl = await loadAvatar(currentUserObj.uid);
-        setAvatarEl(document.getElementById("profileAvatar"), currentAvatarUrl, userDisplayName.charAt(0).toUpperCase(), playerInventory.equipped?.frame);
-        if (userRole === 'student') document.getElementById("changeAvatarBtn")?.classList.remove("hidden");
+        const initial = userDisplayName.charAt(0).toUpperCase();
+        // Профиль
+        setAvatarEl(document.getElementById("profileAvatar"), currentAvatarUrl, initial, playerInventory.equipped?.frame);
+        // Приветствие на главном экране
+        const greetAv = document.getElementById("greetingAvatar");
+        if (greetAv) {
+            if (currentAvatarUrl) {
+                greetAv.innerHTML = `<img src="${currentAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                greetAv.style.background = "transparent";
+            } else {
+                greetAv.innerHTML = initial;
+                greetAv.style.background = "rgba(255,255,255,0.2)";
+            }
+        }
+        if (userRole === 'student' || userRole === 'mentor') {
+            document.getElementById("changeAvatarBtn")?.classList.remove("hidden");
+        }
     }
 
     document.getElementById("changeAvatarBtn")?.addEventListener("click", () => document.getElementById("avatarFileInput")?.click());
