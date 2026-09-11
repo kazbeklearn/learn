@@ -1313,53 +1313,52 @@
             <div class="bg-white rounded-2xl p-4"><h3 class="font-bold text-lg mb-3">Мои задания</h3><div id="myPublishedTasks" class="space-y-2"></div></div>
         </div>
         <div id="profilePanel" class="tab-content hidden w-full">
-            <div class="bg-white rounded-2xl p-5 text-center">
-                <!-- Аватар -->
-                <div class="relative inline-block mx-auto mb-3">
-                    <div class="w-24 h-24 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl font-bold text-blue-700 overflow-hidden" id="profileAvatar"></div>
-                    <button id="changeAvatarBtn" class="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs shadow-md hover:bg-blue-700" title="Изменить фото">
-                        <i class="fas fa-camera"></i>
-                    </button>
-                    <input type="file" id="avatarFileInput" accept="image/*" class="hidden">
-                </div>
-                <h2 id="profileName" class="text-xl font-bold"></h2>
-                <p id="profileEmail" class="text-gray-500 text-sm mt-1"></p>
-                <p class="mt-2"><span class="font-semibold">Роль:</span> <span id="profileRole"></span> &nbsp;|&nbsp; <span class="font-semibold">Класс:</span> <span id="profileClass"></span></p>
-                <div id="profileSchoolBadge" class="hidden"><span class="school-badge"><i class="fas fa-school"></i><span id="profileSchoolName"></span></span></div>
-
-                <!-- Кнопки для УЧЕНИКА — сетка 2x2 -->
-                <div class="student-only hidden mt-4 grid grid-cols-2 gap-2">
-                    <button id="awardsBtn" class="flex flex-col items-center justify-center gap-1.5 bg-amber-50 text-amber-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-amber-100 aspect-square">
-                        <i class="fas fa-trophy text-2xl"></i>
-                        <span class="text-xs font-bold leading-tight">Достижения</span>
-                    </button>
-                    <button id="customizeBtn" class="flex flex-col items-center justify-center gap-1.5 bg-purple-50 text-purple-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-purple-100 aspect-square">
-                        <i class="fas fa-palette text-2xl"></i>
-                        <span class="text-xs font-bold leading-tight">Украшения</span>
-                    </button>
-                    <button id="logoutBtnBottom" class="col-span-2 bg-red-500 text-white py-2.5 px-5 rounded-2xl font-bold transition-all hover:bg-red-600">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Выйти
+            <div class="bg-white rounded-2xl p-5">
+                <!-- Аватар + выйти в одну строку -->
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="relative flex-shrink-0">
+                        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-2xl font-bold text-blue-700 overflow-hidden" id="profileAvatar"></div>
+                        <button id="changeAvatarBtn" class="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs shadow-md hover:bg-blue-700" title="Изменить фото">
+                            <i class="fas fa-camera" style="font-size:0.6rem;"></i>
+                        </button>
+                        <input type="file" id="avatarFileInput" accept="image/*" class="hidden">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 id="profileName" class="text-lg font-bold truncate"></h2>
+                        <p id="profileEmail" class="text-gray-400 text-xs mt-0.5 truncate"></p>
+                        <p class="text-xs mt-1 text-gray-500"><span id="profileRole"></span> · <span id="profileClass"></span></p>
+                        <div id="profileSchoolBadge" class="hidden mt-1"><span class="school-badge"><i class="fas fa-school text-xs"></i><span id="profileSchoolName"></span></span></div>
+                    </div>
+                    <button id="logoutAllBtn" class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-all" title="Выйти">
+                        <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
 
-                <!-- Кнопки для УЧИТЕЛЯ -->
-                <div class="mentor-only hidden mt-4 grid grid-cols-1 gap-2">
+                <!-- Кнопки ученика -->
+                <div class="student-only hidden grid grid-cols-2 gap-2 mb-4">
+                    <button id="awardsBtn" class="flex flex-col items-center justify-center gap-1.5 bg-amber-50 text-amber-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-amber-100" style="min-height:70px;">
+                        <i class="fas fa-trophy text-xl"></i>
+                        <span class="text-xs font-bold">Достижения</span>
+                    </button>
+                    <button id="customizeBtn" class="flex flex-col items-center justify-center gap-1.5 bg-purple-50 text-purple-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-purple-100" style="min-height:70px;">
+                        <i class="fas fa-palette text-xl"></i>
+                        <span class="text-xs font-bold">Украшения</span>
+                    </button>
+                </div>
+
+                <!-- Кнопки учителя -->
+                <div class="mentor-only hidden mb-4">
                     <button id="customizeBtnMentor" class="flex items-center justify-center gap-2 bg-purple-50 text-purple-700 py-2.5 px-4 rounded-2xl font-semibold transition-all hover:bg-purple-100 w-full">
                         <i class="fas fa-palette"></i>
                         <span class="text-sm font-bold">Украшения профиля</span>
                     </button>
-                    <button id="logoutBtnBottomMentor" class="bg-red-500 text-white py-2.5 px-5 rounded-2xl font-bold transition-all hover:bg-red-600 w-full">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Выйти
-                    </button>
                 </div>
 
                 <!-- Баннер -->
-                <div class="mt-5 rounded-2xl overflow-hidden">
+                <div class="rounded-2xl overflow-hidden">
                     <img src="img1/contact_banner.png" alt="Казбэк Learn" style="width:100%;height:auto;display:block;aspect-ratio:1983/793;object-fit:cover;" onerror="this.parentElement.style.display='none'">
                 </div>
-
-                <!-- Дисклеймер -->
-                <div class="mt-4 text-xs text-gray-400 text-center">Сайт создан в развлекательных и юмористических целях и не несёт негативный характер. Данной организации не существует.</div>
+                <div class="mt-3 text-xs text-gray-400 text-center">Сайт создан в развлекательных и юмористических целях и не несёт негативный характер. Данной организации не существует.</div>
             </div>
         </div>
     </div>
@@ -1491,6 +1490,32 @@
             <button class="cust-tab flex-1 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600" data-cat="titles">💬 Титулы</button>
         </div>
         <div id="customizeItemsContainer" class="flex-1 overflow-y-auto px-5 pb-6 space-y-2 mt-1"></div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: ПОДТВЕРЖДЕНИЕ ВЫХОДА -->
+<div id="logoutConfirmModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm animate-scale-in p-6 text-center">
+        <div class="text-4xl mb-3">👋</div>
+        <h3 class="font-extrabold text-lg text-gray-900 mb-2">Выйти из аккаунта?</h3>
+        <p class="text-gray-500 text-sm mb-5">Вы уверены что хотите выйти?</p>
+        <div class="flex gap-3">
+            <button id="logoutCancelBtn" class="flex-1 py-2.5 rounded-2xl border-2 border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all">Нет</button>
+            <button id="logoutConfirmBtn" class="flex-1 py-2.5 rounded-2xl bg-red-500 text-white font-bold hover:bg-red-600 transition-all">Выйти</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: ПОДТВЕРЖДЕНИЕ НАЧАЛА ЗАДАНИЯ -->
+<div id="startTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
+    <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up p-5 pb-8">
+        <h3 class="font-extrabold text-lg text-gray-900 mb-1">Начать задание?</h3>
+        <p class="text-sm text-gray-500 mb-4">Паузу взять нельзя. Убедитесь что готовы.</p>
+        <div id="startTaskInfo" class="bg-blue-50 rounded-2xl p-4 mb-4 space-y-2"></div>
+        <div class="flex gap-3">
+            <button id="startTaskNoBtn" class="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all">Нет, назад</button>
+            <button id="startTaskYesBtn" class="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-md">Да, начать</button>
+        </div>
     </div>
 </div>
 
@@ -1801,9 +1826,19 @@
         }
     });
 
+    document.getElementById("logoutAllBtn")?.addEventListener("click", () => {
+        document.getElementById("logoutConfirmModal").classList.remove("hidden");
+    });
+    document.getElementById("logoutCancelBtn")?.addEventListener("click", () => {
+        document.getElementById("logoutConfirmModal").classList.add("hidden");
+    });
+    document.getElementById("logoutConfirmBtn")?.addEventListener("click", () => {
+        document.getElementById("logoutConfirmModal").classList.add("hidden");
+        auth.signOut();
+    });
+    // Оставляем старые кнопки на случай если остались в DOM
     document.getElementById("logoutBtnBottom")?.addEventListener("click", () => auth.signOut());
     document.getElementById("logoutBtnBottomMentor")?.addEventListener("click", () => auth.signOut());
-    document.getElementById("customizeBtnMentor")?.addEventListener("click", openCustomize);
 
     /* ===== МОДАЛКИ ===== */
     const aboutModal = document.getElementById("aboutModal");
@@ -2199,18 +2234,36 @@
         document.querySelectorAll(".task-start").forEach(btn => btn.addEventListener("click", async () => {
             const id = btn.dataset.id;
             const snap = await db.collection("tasks").doc(id).get();
-            if (snap.exists) {
-                currentTask = { id: snap.id, ...snap.data() };
-                // Блокируем истёкшие задания для учеников (кроме просмотра уже пройденных)
-                if (userRole === "student" && isTaskExpired(currentTask.deadline) && !completedTasksData.has(id)) {
-                    showToast("⏰ Срок выполнения этого задания истёк", true);
-                    return;
-                }
-                if (userRole === "student" && completedTasksData.has(id)) openStudentReview(id);
-                else if (userRole === "student") openTaskForSolve();
-                else openTaskForMentor();
+            if (!snap.exists) return;
+            currentTask = { id: snap.id, ...snap.data() };
+            if (userRole === "student" && isTaskExpired(currentTask.deadline) && !completedTasksData.has(id)) {
+                showToast("⏰ Срок выполнения этого задания истёк", true); return;
             }
+            if (userRole === "student" && completedTasksData.has(id)) { openStudentReview(id); return; }
+            if (userRole !== "student") { openTaskForMentor(); return; }
+
+            // Показываем модалку подтверждения с инфо о задании
+            const info = document.getElementById("startTaskInfo");
+            const t = currentTask;
+            const teacherName = await getTeacherName(t.createdBy);
+            const pagesCount = normalizePages(t.pages).length;
+            info.innerHTML = `
+                ${t.taskType==='olympiad'?'<div class="flex items-center gap-2 text-amber-700 font-bold text-sm"><span>🏆</span> Олимпиада</div>':'' }
+                <div class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-user-tie text-blue-400 w-4"></i><span>От: <b>${escapeHtml(teacherName)}</b></span></div>
+                <div class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-file-alt text-blue-400 w-4"></i><span>Страниц: <b>${pagesCount}</b></span></div>
+                ${t.deadline?`<div class="flex items-center gap-2 text-sm ${isTaskExpired(t.deadline)?'text-red-500':'text-gray-700'}"><i class="fas fa-calendar text-blue-400 w-4"></i><span>До: <b>${new Date(t.deadline).toLocaleDateString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</b></span></div>`:''}
+                ${t.timeLimitSeconds?`<div class="flex items-center gap-2 text-sm text-orange-600"><i class="fas fa-clock text-orange-400 w-4"></i><span>Таймер: <b>${formatSeconds(t.timeLimitSeconds)}</b> — пауза невозможна</span></div>`:''}
+            `;
+            document.getElementById("startTaskModal").classList.remove("hidden");
         }));
+
+        document.getElementById("startTaskNoBtn")?.addEventListener("click", () => {
+            document.getElementById("startTaskModal").classList.add("hidden");
+        });
+        document.getElementById("startTaskYesBtn")?.addEventListener("click", () => {
+            document.getElementById("startTaskModal").classList.add("hidden");
+            openTaskForSolve();
+        });
 
         document.querySelectorAll(".cert-btn").forEach(btn => btn.addEventListener("click", async () => {
             const id = btn.dataset.id;
@@ -2665,7 +2718,11 @@
                 .get();
             const docs = [];
             snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
-            docs.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+            docs.sort((a,b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0);
+            });
 
             if (feedEl) {
                 if (docs.length === 0) {
@@ -2692,16 +2749,28 @@
         const timeStr = art.createdAt?.toDate ? formatNotifTime(art.createdAt.toDate()) : "Только что";
         const likes = art.likes || 0;
         const liked = (art.likedBy||[]).includes(currentUserObj?.uid);
+        const isAuthor = userRole === 'mentor' && art.authorId === currentUserObj?.uid;
+        const isPinned = art.pinned === true;
 
         const card = document.createElement("div");
         card.className = "article-card";
         card.style.animationDelay = `${idx*0.05}s`;
+        if (isPinned) card.style.border = '2px solid #1862CF';
+
         card.innerHTML = `
+            ${isPinned ? '<div style="background:#1862CF;color:white;font-size:0.72rem;font-weight:800;padding:4px 14px;display:flex;align-items:center;gap:4px;"><i class="fas fa-thumbtack"></i> Закреплено</div>' : ''}
             ${art.imageUrl ? `<img src="${art.imageUrl}" class="article-card-img" alt="">` : ''}
             <div class="p-4">
                 <div class="flex items-center gap-2 mb-2">
                     <span class="article-category-badge" style="background:${catStyle.bg};color:${catStyle.color}">${catStyle.label}</span>
                     <span class="text-xs text-gray-400 ml-auto">${timeStr}</span>
+                    ${isAuthor ? `
+                        <button class="pin-btn text-xs px-2 py-1 rounded-lg font-bold transition-all ${isPinned?'bg-blue-100 text-blue-600':'bg-gray-100 text-gray-500 hover:bg-blue-50'}" title="${isPinned?'Открепить':'Закрепить'}">
+                            📌
+                        </button>
+                        <button class="delete-article-btn text-xs px-2 py-1 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 font-bold" title="Удалить">
+                            🗑
+                        </button>` : ''}
                 </div>
                 <h3 class="font-extrabold text-base text-gray-900 mb-2">${escapeHtml(art.title||'')}</h3>
                 <div class="article-body">${art.body||''}</div>
@@ -2717,6 +2786,7 @@
                 </div>
             </div>`;
 
+        // Лайк
         card.querySelector(".like-btn")?.addEventListener("click", async (e) => {
             e.stopPropagation();
             const btn = card.querySelector(".like-btn");
@@ -2724,26 +2794,41 @@
             try {
                 const ref = db.collection("articles").doc(art.id);
                 if (wasLiked) {
-                    await ref.update({
-                        likes: firebase.firestore.FieldValue.increment(-1),
-                        likedBy: firebase.firestore.FieldValue.arrayRemove(currentUserObj.uid)
-                    });
-                    btn.innerHTML = `🤍 ${(art.likes||1)-1}`;
+                    await ref.update({ likes: firebase.firestore.FieldValue.increment(-1), likedBy: firebase.firestore.FieldValue.arrayRemove(currentUserObj.uid) });
+                    btn.innerHTML = `🤍 ${Math.max(0,(art.likes||1)-1)}`;
                     btn.className = btn.className.replace("bg-red-100 text-red-500","bg-gray-100 text-gray-500");
-                    btn.dataset.liked = "false";
-                    art.likes = Math.max(0,(art.likes||1)-1);
+                    btn.dataset.liked = "false"; art.likes = Math.max(0,(art.likes||1)-1);
                 } else {
-                    await ref.update({
-                        likes: firebase.firestore.FieldValue.increment(1),
-                        likedBy: firebase.firestore.FieldValue.arrayUnion(currentUserObj.uid)
-                    });
+                    await ref.update({ likes: firebase.firestore.FieldValue.increment(1), likedBy: firebase.firestore.FieldValue.arrayUnion(currentUserObj.uid) });
                     btn.innerHTML = `❤️ ${(art.likes||0)+1}`;
                     btn.className = btn.className.replace("bg-gray-100 text-gray-500","bg-red-100 text-red-500");
-                    btn.dataset.liked = "true";
-                    art.likes = (art.likes||0)+1;
+                    btn.dataset.liked = "true"; art.likes = (art.likes||0)+1;
                 }
             } catch(err) { showToast("Ошибка: "+err.message, true); }
         });
+
+        // Закрепить/открепить (только автор)
+        card.querySelector(".pin-btn")?.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            try {
+                await db.collection("articles").doc(art.id).update({ pinned: !isPinned });
+                showToast(isPinned ? "Откреплено" : "📌 Закреплено!");
+                loadSchoolPage();
+            } catch(err) { showToast("Ошибка: "+err.message, true); }
+        });
+
+        // Удалить статью (только автор)
+        card.querySelector(".delete-article-btn")?.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (!confirm("Удалить эту статью?")) return;
+            try {
+                await db.collection("articles").doc(art.id).delete();
+                card.style.opacity = "0"; card.style.transform = "scale(0.95)";
+                card.style.transition = "all 0.3s"; setTimeout(() => card.remove(), 300);
+                showToast("Статья удалена");
+            } catch(err) { showToast("Ошибка: "+err.message, true); }
+        });
+
         container.appendChild(card);
     }
 
@@ -3830,8 +3915,8 @@
         if (!el) return;
         if (avatarUrl) el.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
         else el.textContent = initial || '?';
-        const frame = frameId ? COSMETICS.frames.find(f=>f.id===frameId) : null;
-        el.style.cssText = (frame ? frame.css : '') + 'border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;';
+        const frame = (frameId && frameId !== 'frame_none') ? COSMETICS.frames.find(f=>f.id===frameId) : null;
+        el.style.cssText = (frame ? frame.css : '') + 'border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;';
     }
 
     async function initAvatar() {
