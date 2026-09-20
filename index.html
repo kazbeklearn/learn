@@ -1199,8 +1199,13 @@
 
 <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
 <div id="mainApp" class="hidden min-h-screen flex flex-col">
-    <div class="white-header py-2 px-4 flex justify-center items-center sticky top-0 z-20 bg-white">
-        <img id="mainLogo" src="img1/logo.png" alt="Логотип" class="logo-img h-16 w-auto object-contain" onerror="this.onerror=null; this.style.display='none'">
+    <div class="white-header py-2 px-4 flex justify-between items-center sticky top-0 z-20 bg-white" id="mainHeader">
+        <img id="mainLogo" src="img1/logo.png" alt="Логотип" class="logo-img h-14 w-auto object-contain" onerror="this.onerror=null; this.style.display='none'">
+        <!-- Колокольчик для учителя в шапке -->
+        <button id="headerNotifBtn" class="mentor-only hidden relative w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all">
+            <i class="fas fa-bell text-lg"></i>
+            <span id="headerNotifBadge" class="hidden absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center" style="font-size:9px;"></span>
+        </button>
     </div>
     <div id="greetingContainer" class="greeting-blue-block hidden">
         <div class="flex items-center gap-4">
@@ -1211,7 +1216,7 @@
     <div class="flex-1 p-4 pb-24 overflow-y-auto" style="order:1">
         <div id="tasksPanel" class="tab-content w-full">
             <!-- Переключатель вкладок -->
-            <div class="flex gap-2 mt-3 mb-4 p-1 bg-blue-50 rounded-2xl">
+            <div class="flex gap-2 mt-3 mb-3 p-1 bg-blue-50 rounded-2xl">
                 <button id="tabHomework" onclick="switchTaskTab('homework')" class="task-tab-btn flex-1 py-2 rounded-xl text-sm font-bold transition-all bg-white text-blue-700 shadow-sm">
                     📚 Задания
                 </button>
@@ -1219,6 +1224,10 @@
                     🏆 Олимпиады
                 </button>
             </div>
+            <!-- Войти по коду — только для учеников -->
+            <button id="enterCodeBtn" class="student-only hidden w-full mb-3 flex items-center justify-center gap-2 border-2 border-dashed border-blue-300 text-blue-600 font-bold py-2.5 rounded-2xl hover:bg-blue-50 transition-all text-sm">
+                <i class="fas fa-key mr-1"></i> Войти по коду задания
+            </button>
             <div id="tasksListContainer" class="space-y-3"></div>
         </div>
         <div id="notificationsPanel" class="tab-content hidden w-full">
@@ -1363,17 +1372,17 @@
         </div>
     </div>
     <div class="bottom-nav fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-2 px-4 z-20" id="bottomNav" style="display:none;">
-        <button data-nav="tasks" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-tasks text-xl"></i><span class="text-xs mt-1">Задания</span></button>
-        <button data-nav="school" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-school text-xl"></i><span class="text-xs mt-1">Школа</span></button>
-        <button data-nav="constructor" class="nav-item mentor-only flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-pen-ruler text-xl"></i><span class="text-xs mt-1">Конструктор</span></button>
-        <button data-nav="notifications" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600 relative">
+        <button data-nav="tasks" class="nav-item flex flex-col items-center py-1 px-3 rounded-full text-gray-600"><i class="fas fa-tasks text-xl"></i><span class="text-xs mt-1">Задания</span></button>
+        <button data-nav="school" class="nav-item flex flex-col items-center py-1 px-3 rounded-full text-gray-600"><i class="fas fa-school text-xl"></i><span class="text-xs mt-1">Школа</span></button>
+        <button data-nav="constructor" class="nav-item mentor-only flex flex-col items-center py-1 px-3 rounded-full text-gray-600"><i class="fas fa-pen-ruler text-xl"></i><span class="text-xs mt-1">Конструктор</span></button>
+        <button data-nav="notifications" class="nav-item student-only flex flex-col items-center py-1 px-3 rounded-full text-gray-600 relative">
             <span class="relative inline-block">
                 <i class="fas fa-bell text-xl"></i>
                 <span id="navNotifBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center" style="font-size:9px;"></span>
             </span>
             <span class="text-xs mt-1">Сводки</span>
         </button>
-        <button data-nav="profile" class="nav-item flex flex-col items-center py-1 px-4 rounded-full text-gray-600"><i class="fas fa-user-circle text-xl"></i><span class="text-xs mt-1">Профиль</span></button>
+        <button data-nav="profile" class="nav-item flex flex-col items-center py-1 px-3 rounded-full text-gray-600"><i class="fas fa-user-circle text-xl"></i><span class="text-xs mt-1">Профиль</span></button>
     </div>
 </div>
 
@@ -1490,6 +1499,43 @@
             <button class="cust-tab flex-1 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600" data-cat="titles">💬 Титулы</button>
         </div>
         <div id="customizeItemsContainer" class="flex-1 overflow-y-auto px-5 pb-6 space-y-2 mt-1"></div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: КОД ЗАДАНИЯ / QR -->
+<div id="inviteModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm animate-scale-in p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-extrabold text-lg text-gray-900">📎 Код задания</h3>
+            <button id="closeInviteBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">&times;</button>
+        </div>
+        <p class="text-sm text-gray-500 mb-3">Поделитесь кодом или QR с учеником любого класса</p>
+        <div class="bg-blue-50 rounded-2xl p-4 text-center mb-4">
+            <div id="inviteCode" class="font-black text-3xl text-blue-700 tracking-widest mb-1"></div>
+            <div class="text-xs text-gray-400">Код для входа</div>
+        </div>
+        <div id="inviteQR" class="flex justify-center mb-4"></div>
+        <button id="copyInviteBtn" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-2xl hover:bg-blue-700 transition-all mb-2">
+            <i class="fas fa-copy mr-2"></i>Скопировать код
+        </button>
+    </div>
+</div>
+
+<!-- МОДАЛКА: ВВОД КОДА ЗАДАНИЯ (для ученика) -->
+<div id="enterCodeModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm animate-scale-in p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-extrabold text-lg text-gray-900">🔑 Войти по коду</h3>
+            <button id="closeEnterCodeBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">&times;</button>
+        </div>
+        <p class="text-sm text-gray-500 mb-3">Введите код задания от учителя</p>
+        <input id="codeInput" type="text" maxlength="6" placeholder="000000"
+            class="w-full text-center text-3xl font-black tracking-widest border-2 border-blue-200 rounded-2xl p-3 mb-4 focus:outline-none focus:border-blue-500 uppercase"
+            style="letter-spacing:0.3em;">
+        <button id="submitCodeBtn" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-2xl hover:bg-blue-700 transition-all">
+            Открыть задание
+        </button>
+        <div id="codeError" class="hidden text-center text-red-500 text-sm mt-2 font-semibold"></div>
     </div>
 </div>
 
@@ -1927,18 +1973,14 @@
 
     function updateNotifBadge(count) {
         unreadNotifCount = count;
-        const navBadge = document.getElementById("navNotifBadge");
-        const profileBadge = document.getElementById("profileNotifBadge");
-        if (count > 0) {
-            const label = count > 99 ? "99+" : String(count);
-            navBadge?.classList.remove("hidden");
-            if (navBadge) navBadge.textContent = label;
-            profileBadge?.classList.remove("hidden");
-            if (profileBadge) profileBadge.textContent = label;
-        } else {
-            navBadge?.classList.add("hidden");
-            profileBadge?.classList.add("hidden");
-        }
+        const label = count > 99 ? "99+" : String(count);
+        const ids = ["navNotifBadge", "headerNotifBadge", "profileNotifBadge"];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (count > 0) { el.classList.remove("hidden"); el.textContent = label; }
+            else { el.classList.add("hidden"); }
+        });
     }
 
     async function loadNotifications() {
@@ -2227,9 +2269,17 @@
                         ${userRole === 'student' ? (completed ? '👁 Просмотреть' : '▶ Начать') : '👁 Просмотреть'}
                     </button>
                     ${isOlympiad && completed && userRole === 'student' ? `<button data-id="${t.id}" class="cert-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#fef9c3;color:#854d0e;">🎓 Сертификат</button>` : ''}
+                    ${userRole === 'mentor' ? `<button data-id="${t.id}" class="invite-code-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#f0fdf4;color:#15803d;" title="Код приглашения"><i class="fas fa-qrcode"></i></button>` : ''}
                 </div>`;
             container.appendChild(card);
         }
+
+        document.querySelectorAll(".invite-code-btn").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                openInviteModal(btn.dataset.id);
+            });
+        });
 
         document.querySelectorAll(".task-start").forEach(btn => btn.addEventListener("click", async () => {
             const id = btn.dataset.id;
@@ -2651,6 +2701,88 @@
 
     document.querySelectorAll('.cust-tab').forEach(btn => btn.addEventListener('click', () => { custCurrentCat = btn.dataset.cat; renderCustItems(); }));
     document.getElementById("customizeBtn")?.addEventListener("click", openCustomize);
+    document.getElementById("customizeBtnMentor")?.addEventListener("click", openCustomize);
+
+    /* ===== КОЛОКОЛЬЧИК УЧИТЕЛЯ В ШАПКЕ ===== */
+    document.getElementById("headerNotifBtn")?.addEventListener("click", () => switchNav("notifications"));
+
+    /* ===== КОД ЗАДАНИЯ ===== */
+    function generateInviteCode() {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    async function openInviteModal(taskId) {
+        document.getElementById("inviteModal").classList.remove("hidden");
+        let code;
+        const snap = await db.collection("tasks").doc(taskId).get();
+        if (snap.exists && snap.data().inviteCode) {
+            code = snap.data().inviteCode;
+        } else {
+            code = generateInviteCode();
+            await db.collection("tasks").doc(taskId).update({ inviteCode: code });
+        }
+        document.getElementById("inviteCode").textContent = code;
+
+        // QR код
+        const qrContainer = document.getElementById("inviteQR");
+        qrContainer.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent('kazbek:'+code)}&color=1862CF&bgcolor=ffffff`;
+        img.style.cssText = "border-radius:12px;border:3px solid #dbeafe;";
+        img.alt = "QR код";
+        qrContainer.appendChild(img);
+
+        document.getElementById("copyInviteBtn").onclick = () => {
+            navigator.clipboard?.writeText(code)
+                .then(() => showToast("✅ Код скопирован!"))
+                .catch(() => { const i=document.createElement("input");i.value=code;document.body.appendChild(i);i.select();document.execCommand("copy");i.remove();showToast("✅ Код скопирован!"); });
+        };
+    }
+
+    document.getElementById("closeInviteBtn")?.addEventListener("click", () => document.getElementById("inviteModal").classList.add("hidden"));
+    document.getElementById("inviteModal")?.addEventListener("click", e => { if(e.target===document.getElementById("inviteModal")) document.getElementById("inviteModal").classList.add("hidden"); });
+
+    /* ===== ВВОД КОДА УЧЕНИКОМ ===== */
+    document.getElementById("enterCodeBtn")?.addEventListener("click", () => {
+        document.getElementById("enterCodeModal").classList.remove("hidden");
+        document.getElementById("codeInput").value = "";
+        document.getElementById("codeError").classList.add("hidden");
+    });
+    document.getElementById("closeEnterCodeBtn")?.addEventListener("click", () => document.getElementById("enterCodeModal").classList.add("hidden"));
+    document.getElementById("enterCodeModal")?.addEventListener("click", e => { if(e.target===document.getElementById("enterCodeModal")) document.getElementById("enterCodeModal").classList.add("hidden"); });
+
+    document.getElementById("submitCodeBtn")?.addEventListener("click", async () => {
+        const code = document.getElementById("codeInput").value.trim();
+        const errEl = document.getElementById("codeError");
+        if (code.length < 5) { errEl.textContent="Введите 6-значный код"; errEl.classList.remove("hidden"); return; }
+        const btn = document.getElementById("submitCodeBtn");
+        btn.disabled=true; btn.textContent="Поиск...";
+        errEl.classList.add("hidden");
+        try {
+            const snap = await db.collection("tasks").where("inviteCode","==",code).get();
+            if (snap.empty) {
+                errEl.textContent="Задание не найдено. Проверьте код"; errEl.classList.remove("hidden");
+            } else {
+                const doc = snap.docs[0];
+                currentTask = { id: doc.id, ...doc.data() };
+                document.getElementById("enterCodeModal").classList.add("hidden");
+                if (completedTasksData.has(currentTask.id)) {
+                    openStudentReview(currentTask.id);
+                } else {
+                    const info = document.getElementById("startTaskInfo");
+                    const t = currentTask;
+                    const teacherName = await getTeacherName(t.createdBy);
+                    info.innerHTML = `
+                        <div class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-user-tie text-blue-400 w-4"></i><span>От: <b>${escapeHtml(teacherName)}</b></span></div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-book text-blue-400 w-4"></i><span><b>${escapeHtml(t.title||'')}</b></span></div>
+                        ${t.timeLimitSeconds?`<div class="flex items-center gap-2 text-sm text-orange-600"><i class="fas fa-clock text-orange-400 w-4"></i><span>Таймер: <b>${formatSeconds(t.timeLimitSeconds)}</b></span></div>`:''}`;
+                    document.getElementById("startTaskModal").classList.remove("hidden");
+                }
+            }
+        } catch(e) { errEl.textContent="Ошибка: "+e.message; errEl.classList.remove("hidden"); }
+        btn.disabled=false; btn.textContent="Открыть задание";
+    });
+    document.getElementById("codeInput")?.addEventListener("keydown", e => { if(e.key==="Enter") document.getElementById("submitCodeBtn")?.click(); });
     document.getElementById("closeCustomizeBtn")?.addEventListener("click", () => document.getElementById("customizeModal").classList.add("hidden"));
     document.getElementById("customizeModal")?.addEventListener("click", (e) => { if(e.target===document.getElementById("customizeModal")) document.getElementById("customizeModal").classList.add("hidden"); });
 
