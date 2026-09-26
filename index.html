@@ -1317,8 +1317,21 @@
                     </div>
                     <input type="hidden" id="taskTypeField" value="homework">
                 </div>
+                <!-- Обложка олимпиады — показывается только при выборе типа олимпиада -->
+                <div id="olympiadCoverBlock" class="hidden mb-4 bg-amber-50 rounded-2xl p-4 border border-amber-200">
+                    <h3 class="font-bold text-amber-800 mb-3">🏆 Обложка олимпиады</h3>
+                    <textarea id="olympiadCoverText" rows="3" placeholder="Описание олимпиады — что проверяется, правила, призы..." class="w-full border rounded-xl p-2.5 text-sm mb-3 focus:outline-none focus:border-amber-400"></textarea>
+                    <div>
+                        <button type="button" id="olympiadCoverImgBtn" class="text-amber-700 text-sm font-medium"><i class="fas fa-image mr-1"></i>Добавить фото обложки</button>
+                        <input type="file" id="olympiadCoverImgFile" accept="image/*" class="hidden">
+                        <div id="olympiadCoverImgPreview" class="mt-2 hidden">
+                            <img id="olympiadCoverImgEl" class="max-h-32 rounded-xl border" alt="">
+                            <button type="button" id="olympiadCoverImgRemove" class="block text-red-400 text-xs mt-1">✖ Удалить фото</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="mb-4"><input type="text" id="taskName" class="w-full border rounded-xl p-3" placeholder="Название"></div>
-                <div class="mb-4"><input type="text" id="taskClass" class="w-full border rounded-xl p-3" placeholder="Класс (7А, 8Б)"></div>
+                <div class="mb-4"><input type="text" id="taskClass" class="w-full border rounded-xl p-3" placeholder="Классы через запятую: 7А, 8Б, 9В"></div>
                 <div class="mb-4">
                     <label class="block text-sm font-semibold mb-1">Срок действия (до)</label>
                     <div class="deadline-picker">
@@ -2312,11 +2325,33 @@
         const tasks = [];
         for (const doc of q.docs) {
             const d = doc.data();
-            if (userRole === "student" && d.targetClass !== userClass) continue;
+            if (userRole === "student") {
+                // targetClass может быть строкой "7А, 8Б" или массивом
+                const classes = Array.isArray(d.targetClass)
+                    ? d.targetClass
+                    : (d.targetClass||"").split(",").map(s=>s.trim()).filter(Boolean);
+                if (classes.length > 0 && !classes.includes(userClass)) continue;
+            }
             const taskType = d.taskType || 'homework';
             if (taskType !== currentTaskTab) continue;
             tasks.push({ id: doc.id, ...d });
         }
+        // Загружаем медиа для обложек олимпиад
+        for (const t of tasks) {
+            if (t.taskType === 'olympiad' && !t.coverImage) {
+                try {
+                    const mSnap = await db.collection("taskMedia")
+                        .where("taskId","==",t.id)
+                        .where("chunkIndex","==",-1)
+                        .get();
+                    if (!mSnap.empty) {
+                        const cover = mSnap.docs[0].data().media?.coverImage;
+                        if (cover?.imageBase64) t.coverImage = cover.imageBase64;
+                    }
+                } catch(e) {}
+            }
+        }
+
         if (tasks.length === 0) {
             container.innerHTML = `<div class="text-center text-gray-400 py-12">
                 <div class="text-4xl mb-3">${currentTaskTab === 'olympiad' ? '🏆' : '📚'}</div>
@@ -2358,15 +2393,19 @@
             if (isOlympiad) badges += `<span class="task-badge" style="background:#fef9c3;color:#854d0e"><i class="fas fa-medal mr-1"></i>Олимпиада</span>`;
 
             card.innerHTML = `
-                <div class="font-extrabold text-base text-gray-900 mb-2">${isOlympiad ? '🏆 ' : ''}${escapeHtml(t.title)}</div>
-                <div class="flex flex-wrap gap-1.5 mb-3">${badges}</div>
-                <div class="flex gap-2">
-                    <button data-id="${t.id}" class="task-start flex-1 font-bold py-2 px-4 rounded-xl transition-all text-sm"
-                        style="background:${completed?'#f0fdf4':'#eff6ff'};color:${completed?'#15803d':'#1862CF'}">
-                        ${userRole === 'student' ? (completed ? '👁 Просмотреть' : '▶ Начать') : '👁 Просмотреть'}
-                    </button>
-                    ${isOlympiad && completed && userRole === 'student' ? `<button data-id="${t.id}" class="cert-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#fef9c3;color:#854d0e;">🎓 Сертификат</button>` : ''}
-                    ${userRole === 'mentor' ? `<button data-id="${t.id}" class="invite-code-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#f0fdf4;color:#15803d;" title="Код приглашения"><i class="fas fa-qrcode"></i></button>` : ''}
+                ${isOlympiad && t.coverImage ? `<img src="${t.coverImage}" style="width:100%;height:160px;object-fit:cover;border-radius:16px 16px 0 0;display:block;" alt="">` : ''}
+                <div class="p-4">
+                    <div class="font-extrabold text-base text-gray-900 mb-1">${isOlympiad ? '🏆 ' : ''}${escapeHtml(t.title)}</div>
+                    ${isOlympiad && t.coverText ? `<div class="text-sm text-gray-600 mb-2" style="line-height:1.5;">${escapeHtml(t.coverText)}</div>` : ''}
+                    <div class="flex flex-wrap gap-1.5 mb-3">${badges}</div>
+                    <div class="flex gap-2">
+                        <button data-id="${t.id}" class="task-start flex-1 font-bold py-2 px-4 rounded-xl transition-all text-sm"
+                            style="background:${completed?'#f0fdf4':'#eff6ff'};color:${completed?'#15803d':'#1862CF'}">
+                            ${userRole === 'student' ? (completed ? '👁 Просмотреть' : '▶ Начать') : '👁 Просмотреть'}
+                        </button>
+                        ${isOlympiad && completed && userRole === 'student' ? `<button data-id="${t.id}" class="cert-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#fef9c3;color:#854d0e;">🎓 Сертификат</button>` : ''}
+                        ${userRole === 'mentor' ? `<button data-id="${t.id}" class="invite-code-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#f0fdf4;color:#15803d;" title="Код приглашения"><i class="fas fa-qrcode"></i></button>` : ''}
+                    </div>
                 </div>`;
             container.appendChild(card);
         }
@@ -3405,11 +3444,19 @@
             prevBtn.classList.add("hidden");
             nextBtn.classList.add("hidden");
             finishBtn.classList.add("hidden");
-            // Крестик на экране результата ЗАБЛОКИРОВАН для ученика до сохранения
-            document.getElementById("closeTaskBtn").onclick = (e) => {
-                e.stopPropagation();
-                showToast("Сначала сохраните результат!", true);
-            };
+            // ЗАЩИТА ОТ ЖУЛЬНИЧЕСТВА: только если не режим просмотра
+            if (!isReviewModeGlobal) {
+                // Крестик заблокирован до сохранения
+                document.getElementById("closeTaskBtn").onclick = (e) => {
+                    e.stopPropagation();
+                    showToast("Сначала сохраните результат!", true);
+                };
+            } else {
+                // В режиме просмотра — просто закрываем
+                document.getElementById("closeTaskBtn").onclick = () => {
+                    document.getElementById("taskFullscreen").classList.add("hidden");
+                };
+            }
             // Точки страниц — некликабельны
             document.getElementById("fsPagesContainer").querySelectorAll('.page-dot').forEach(d => { d.style.pointerEvents = 'none'; });
             modal.classList.remove("hidden");
@@ -3597,7 +3644,6 @@
         }
 
         return `<div class="elem-card" data-elem-index="${i}">
-            <div class="elem-badge">${typeLabels[el.type]||el.type}${pointsLabel}</div>
             ${inner}
         </div>`;
     }
@@ -3993,8 +4039,18 @@
             const timeMins = parseInt(document.getElementById("timeLimitMinutes")?.value || "0");
             const timeLimitSeconds = timeMins > 0 ? timeMins * 60 : null;
             const taskType = document.getElementById("taskTypeField")?.value || "homework";
+
+            // Множественные классы — сохраняем как массив
+            const targetClasses = targetClass.split(",").map(s=>s.trim()).filter(Boolean);
+
+            // Обложка олимпиады
+            const coverText = document.getElementById("olympiadCoverText")?.value?.trim() || "";
+            const coverImgEl = document.getElementById("olympiadCoverImgEl");
+            const coverImage = (taskType === 'olympiad' && coverImgEl?.src && coverImgEl.src.startsWith('data:')) ? coverImgEl.src : null;
+
+            // Собираем pages БЕЗ медиа — только текст
             const pagesObj = {};
-            const mediaStore = {}; // медиа хранится отдельно: { "pageIdx_elemIdx": {imageBase64, audios} }
+            const mediaItems = []; // [{key, data}] — все медиа отдельно
 
             for (let i = 0; i < pagesStore.length; i++) {
                 pagesObj[i] = pagesStore[i].map((el, elemIdx) => {
@@ -4003,70 +4059,66 @@
                         points: Number(el.points) || (el.type === 'text' ? 0 : 1),
                         content: el.content || ""
                     };
-
                     if (el.type === 'choice' || el.type === 'multichoice') {
-                        // Варианты — только текст/тип/фото флаг, аудио убираем полностью
                         base.options = (el.options || []).map((o, oi) => {
-                            const obj = typeof o === 'string'
-                                ? { text: o, type: 'text' }
-                                : { text: o.text||'', type: o.type||'text' };
-                            // Фото варианта — сохраняем отдельно если есть
+                            const obj = { text: o.text||'', type: o.type||'text' };
                             if (o.image) {
-                                const mkey = `${i}_${elemIdx}_opt_${oi}`;
-                                mediaStore[mkey] = { image: o.image };
-                                obj.hasImage = true;
-                                obj.mediaKey = mkey;
+                                const mkey = `p${i}_e${elemIdx}_o${oi}`;
+                                mediaItems.push({ key: mkey, data: { image: o.image } });
+                                obj.hasImage = true; obj.mediaKey = mkey;
                             }
-                            // Аудио вариантов — НЕ сохраняем (Firestore не поддерживает)
                             return obj;
                         });
                         if (el.type === 'choice') base.correctAnswer = [el.correctIndex || 0];
                         if (el.type === 'multichoice') base.correctAnswer = [...(el.correctAnswers || new Set())];
                     }
-
                     if (el.type === 'textarea' && el.correctText) base.correctText = el.correctText;
-
-                    // Фото элемента — сохраняем отдельно
+                    // Фото элемента — только ключ, данные отдельно
                     if (el.imageBase64) {
-                        const mkey = `${i}_${elemIdx}_img`;
-                        mediaStore[mkey] = { imageBase64: el.imageBase64 };
-                        base.hasImage = true;
-                        base.mediaKey = mkey;
+                        const mkey = `p${i}_e${elemIdx}_img`;
+                        mediaItems.push({ key: mkey, data: { imageBase64: el.imageBase64 } });
+                        base.hasImage = true; base.mediaKey = mkey;
                     }
-
-
-
                     return base;
                 });
             }
 
             try {
+                // Сохраняем задание без медиа
                 const taskRef = await db.collection("tasks").add({
-                    title, targetClass, pages: pagesObj, published: true, deadline, taskType,
+                    title,
+                    targetClass: targetClasses.length === 1 ? targetClasses[0] : targetClasses,
+                    pages: pagesObj,
+                    published: true, deadline, taskType,
                     ...(timeLimitSeconds ? { timeLimitSeconds } : {}),
+                    ...(taskType === 'olympiad' && coverText ? { coverText } : {}),
                     createdBy: currentUserObj.uid,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Сохраняем медиа отдельно если есть
-                if (Object.keys(mediaStore).length > 0) {
-                    // Разбиваем на чанки по 500KB чтобы не превысить лимит
-                    const chunks = {};
-                    let chunkIdx = 0;
+                // Сохраняем медиа чанками по ~600KB
+                if (mediaItems.length > 0 || coverImage) {
+                    const chunks = [{}];
                     let chunkSize = 0;
-                    for (const [key, val] of Object.entries(mediaStore)) {
-                        const sz = JSON.stringify(val).length;
-                        if (chunkSize + sz > 700000) { chunkIdx++; chunkSize = 0; }
-                        if (!chunks[chunkIdx]) chunks[chunkIdx] = {};
-                        chunks[chunkIdx][key] = val;
+                    for (const { key, data } of mediaItems) {
+                        const sz = JSON.stringify(data).length;
+                        if (chunkSize + sz > 600000) { chunks.push({}); chunkSize = 0; }
+                        chunks[chunks.length-1][key] = data;
                         chunkSize += sz;
                     }
-                    for (const [ci, chunk] of Object.entries(chunks)) {
+                    // Обложка в отдельный документ если большая
+                    if (coverImage) {
                         await db.collection("taskMedia").add({
-                            taskId: taskRef.id,
-                            chunkIndex: parseInt(ci),
-                            media: chunk
+                            taskId: taskRef.id, chunkIndex: -1,
+                            media: { coverImage: { imageBase64: coverImage } }
                         });
+                    }
+                    for (let ci = 0; ci < chunks.length; ci++) {
+                        if (Object.keys(chunks[ci]).length > 0) {
+                            await db.collection("taskMedia").add({
+                                taskId: taskRef.id, chunkIndex: ci, media: chunks[ci]
+                            });
+                        }
                     }
                 }
 
@@ -4105,15 +4157,43 @@
         document.querySelectorAll(".viewTaskMentor").forEach(btn => btn.addEventListener("click", async () => { const id = btn.dataset.id; const snap = await db.collection("tasks").doc(id).get(); if (snap.exists) { currentTask = { id: snap.id, ...snap.data() }; await openTaskForMentor(); } }));
     }
 
-    // Переключатель типа задания в конструкторе
+    // Переключатель типа задания + показ блока обложки
     document.addEventListener("click", (e) => {
         const btn = e.target.closest(".task-type-btn");
         if (!btn) return;
         document.querySelectorAll(".task-type-btn").forEach(b => {
-            b.style.borderColor = "#e5e7eb"; b.style.background = "#f9fafb"; b.style.color = "#6b7280";
+            b.style.borderColor="#e5e7eb"; b.style.background="#f9fafb"; b.style.color="#6b7280";
         });
-        btn.style.borderColor = "#1862CF"; btn.style.background = "#eff6ff"; btn.style.color = "#1862CF";
+        btn.style.borderColor="#1862CF"; btn.style.background="#eff6ff"; btn.style.color="#1862CF";
         document.getElementById("taskTypeField").value = btn.dataset.ttype;
+        // Показываем блок обложки только для олимпиады
+        const coverBlock = document.getElementById("olympiadCoverBlock");
+        if (coverBlock) coverBlock.classList.toggle("hidden", btn.dataset.ttype !== "olympiad");
+    });
+
+    // Фото обложки олимпиады
+    document.getElementById("olympiadCoverImgBtn")?.addEventListener("click", () => {
+        document.getElementById("olympiadCoverImgFile")?.click();
+    });
+    document.getElementById("olympiadCoverImgFile")?.addEventListener("change", (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        if (f.size > 500000) { showToast("Фото до 500 КБ", true); return; }
+        const r = new FileReader();
+        r.onload = re => {
+            const img = document.getElementById("olympiadCoverImgEl");
+            const preview = document.getElementById("olympiadCoverImgPreview");
+            if (img) img.src = re.target.result;
+            if (preview) preview.classList.remove("hidden");
+        };
+        r.readAsDataURL(f);
+    });
+    document.getElementById("olympiadCoverImgRemove")?.addEventListener("click", () => {
+        const img = document.getElementById("olympiadCoverImgEl");
+        const preview = document.getElementById("olympiadCoverImgPreview");
+        if (img) img.src = "";
+        if (preview) preview.classList.add("hidden");
+        const fileInput = document.getElementById("olympiadCoverImgFile");
+        if (fileInput) fileInput.value = "";
     });
 
 
