@@ -2342,13 +2342,15 @@
                 try {
                     const mSnap = await db.collection("taskMedia")
                         .where("taskId","==",t.id)
-                        .where("chunkIndex","==",-1)
                         .get();
-                    if (!mSnap.empty) {
-                        const cover = mSnap.docs[0].data().media?.coverImage;
-                        if (cover?.imageBase64) t.coverImage = cover.imageBase64;
-                    }
-                } catch(e) {}
+                    mSnap.forEach(doc => {
+                        const d = doc.data();
+                        if (d.chunkIndex === -1) {
+                            const cover = d.media?.coverImage;
+                            if (cover?.imageBase64) t.coverImage = cover.imageBase64;
+                        }
+                    });
+                } catch(e) { console.error("Cover load error:", e); }
             }
         }
 
