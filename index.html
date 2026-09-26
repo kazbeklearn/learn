@@ -1770,7 +1770,12 @@
     let isReviewModeGlobal = false;
 
     /* ===== HELPERS ===== */
-    function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function escapeHtml(s) {
+        if (!s) return '';
+        if (Array.isArray(s)) s = s.join(', ');
+        s = String(s);
+        return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
     function isTaskExpired(deadline) { if (!deadline) return false; return new Date(deadline) < new Date(); }
     function normalizePages(pages) { if (!pages) return []; if (Array.isArray(pages)) return pages; if (typeof pages === 'object') { const arr = []; for (let i = 0; i < Object.keys(pages).length; i++) if (pages[i]) arr.push(pages[i]); return arr; } return []; }
 
@@ -3314,7 +3319,8 @@
         currentPage = 0; isReviewModeGlobal = true;
         document.getElementById("mentorModalTitle").innerText = currentTask.title;
         const pagesCount = currentPagesArray.length;
-        document.getElementById("mentorModalMeta").innerText = `Класс: ${currentTask.targetClass||'—'} • ${pagesCount} стр.${currentTask.deadline?' • До: '+new Date(currentTask.deadline).toLocaleDateString():''}`;
+        const classesDisplay = Array.isArray(currentTask.targetClass) ? currentTask.targetClass.join(', ') : (currentTask.targetClass||'—');
+        document.getElementById("mentorModalMeta").innerText = `Класс: ${classesDisplay} • ${pagesCount} стр.${currentTask.deadline?' • До: '+new Date(currentTask.deadline).toLocaleDateString():''}`;
         document.getElementById("mentorStudentCount").innerText = mentorStudentsList.length > 0 ? `${mentorStudentsList.length} чел.` : 'Нет ответов';
         const listEl = document.getElementById("mentorStudentsList");
         listEl.innerHTML = "";
@@ -4152,7 +4158,8 @@
             const taskData = doc.data();
             const resultsSnap = await db.collection("results").where("taskId", "==", doc.id).get();
             const div = document.createElement("div"); div.className = "border-b py-2 flex justify-between items-center";
-            div.innerHTML = `<div><span class="font-medium">${escapeHtml(taskData.title)}</span><span class="text-xs text-gray-400 ml-2">(${taskData.targetClass})</span><div class="text-xs text-blue-500">${resultsSnap.size} учеников</div></div><div><button data-id="${doc.id}" class="delMine text-red-500 text-sm mr-2">Удалить</button><button data-id="${doc.id}" class="viewTaskMentor text-blue-600 text-sm">Просмотреть</button></div>`;
+            const classesStr = Array.isArray(taskData.targetClass) ? taskData.targetClass.join(', ') : (taskData.targetClass||'');
+            div.innerHTML = `<div><span class="font-medium">${escapeHtml(taskData.title)}</span><span class="text-xs text-gray-400 ml-2">(${escapeHtml(classesStr)})</span><div class="text-xs text-blue-500">${resultsSnap.size} учеников</div></div><div><button data-id="${doc.id}" class="delMine text-red-500 text-sm mr-2">Удалить</button><button data-id="${doc.id}" class="viewTaskMentor text-blue-600 text-sm">Просмотреть</button></div>`;
             cont.appendChild(div);
         }
         document.querySelectorAll(".delMine").forEach(btn => btn.addEventListener("click", async () => { if (confirm("Удалить задание?")) { await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasks(); showToast("Удалено"); } }));
