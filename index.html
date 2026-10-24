@@ -384,9 +384,11 @@
         .expired-task { opacity: 0.6; background: #f3f4f6; border-left: 4px solid #ef4444; }
         .task-badge {
             display: inline-flex; align-items: center;
-            padding: 3px 9px; border-radius: 100px;
-            font-size: 0.72rem; font-weight: 700;
+            padding: 4px 10px; border-radius: 100px;
+            font-size: 0.7rem; font-weight: 600;
             white-space: nowrap;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
         }
         
         /* ===== ЛОГОТИП ===== */
@@ -503,24 +505,25 @@
         #taskFullscreen {
             position: fixed;
             inset: 0;
-            background: #f0f4ff;
+            background: linear-gradient(180deg, #f3f6fc 0%, #eef2fa 100%);
             z-index: 50;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
         #taskFullscreen.hidden { display: none; }
-        
-        /* Шапка задания */
+
+        /* Шапка задания — минималистичное стекло */
         .task-fs-header {
-            background: white;
-            padding: 12px 16px;
+            background: rgba(255,255,255,0.65);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            padding: 14px 16px;
             display: flex;
             align-items: center;
             gap: 12px;
-            border-bottom: 1px solid #dbeafe;
+            border-bottom: 1px solid rgba(15,23,42,0.06);
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(24,98,207,0.08);
         }
         .task-fs-title {
             font-family: 'Nunito', sans-serif;
@@ -601,12 +604,46 @@
         }
         
         /* Карточка элемента задания */
+        /* ===== МИНИМАЛИСТИЧНАЯ КАРТОЧКА ЗАДАНИЯ ===== */
+        .task-card-glass {
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 1px 2px rgba(15,23,42,0.03), 0 12px 32px rgba(15,23,42,0.05);
+        }
+        .task-card-glass:hover {
+            box-shadow: 0 2px 4px rgba(15,23,42,0.05), 0 16px 40px rgba(15,23,42,0.08);
+        }
+
+        /* Стеклянная модалка — применяется к внутренней карточке */
+        .glass-modal-card {
+            background: rgba(255,255,255,0.82) !important;
+            backdrop-filter: blur(28px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* Стеклянные кнопки карточки задания */
+        .task-start-glass, .cert-btn-glass, .invite-code-btn-glass {
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(12px) saturate(150%);
+            -webkit-backdrop-filter: blur(12px) saturate(150%);
+            border: 1px solid rgba(255,255,255,0.7);
+        }
+        .task-start-glass:active, .cert-btn-glass:active, .invite-code-btn-glass:active { transform: scale(0.96); }
+        .cert-btn-glass { color: #854d0e; }
+        .invite-code-btn-glass { color: #15803d; }
+
+        /* ===== МИНИМАЛИСТИЧНЫЙ ДИЗАЙН: элементы задания ===== */
         .elem-card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 2px 12px rgba(24,98,207,0.07);
-            border: 2px solid transparent;
+            background: rgba(255,255,255,0.65);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border-radius: 24px;
+            padding: 22px;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.04);
+            border: 1px solid rgba(255,255,255,0.6);
             transition: all 0.3s ease;
             animation: slideInRight 0.3s ease-out both;
         }
@@ -614,39 +651,32 @@
         .elem-card:nth-child(2) { animation-delay: 0.05s; }
         .elem-card:nth-child(3) { animation-delay: 0.1s; }
         .elem-card:nth-child(4) { animation-delay: 0.15s; }
-        .elem-card.correct-card { border-color: #10b981; background: #f0fdf4; animation: correctPulse 0.4s ease; }
-        .elem-card.wrong-card { border-color: #ef4444; background: #fff5f5; animation: shake 0.4s ease; }
-        
-        .elem-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            background: #e8f0fc;
-            color: #1862CF;
-            border-radius: 100px;
-            padding: 3px 10px;
-            font-size: 11px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
+        .elem-card.correct-card { border-color: rgba(16,185,129,0.4); background: rgba(240,253,244,0.75); animation: correctPulse 0.4s ease; }
+        .elem-card.wrong-card { border-color: rgba(239,68,68,0.4); background: rgba(255,245,245,0.75); animation: shake 0.4s ease; }
+
+        .elem-badge { display: none; } /* Упрощённый дизайн — типы элементов больше не подписываются */
+
         .elem-question {
             font-size: 1rem;
-            font-weight: 700;
-            color: #0d2a5e;
+            font-weight: 600;
+            color: #0f172a;
             line-height: 1.5;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
+            letter-spacing: -0.01em;
         }
-        
-        /* Варианты ответов */
+
+        /* Варианты ответов — минималистичные, стеклянные */
         .choice-option {
             position: relative;
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 13px 16px;
-            border-radius: 14px;
-            border: 2px solid #dbeafe;
-            background: #f0f6ff;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(15,23,42,0.08);
+            background: rgba(248,250,252,0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             cursor: pointer;
             transition: all 0.2s ease;
             margin-bottom: 8px;
@@ -844,10 +874,13 @@
             margin-top: 16px;
         }
         .result-stat {
-            background: white;
-            border-radius: 16px;
-            padding: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(16px) saturate(160%);
+            -webkit-backdrop-filter: blur(16px) saturate(160%);
+            border-radius: 20px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 1px 2px rgba(15,23,42,0.03), 0 8px 20px rgba(15,23,42,0.04);
         }
         .result-stat-value { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.5rem; color: #0d2a5e; }
         .result-stat-label { font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-top: 2px; }
@@ -1521,7 +1554,7 @@
 
 <!-- МОДАЛКА: УКРАШЕНИЯ ПРОФИЛЯ (бесплатно) -->
 <div id="customizeModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
-    <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:88vh;display:flex;flex-direction:column;">
+    <div class="glass-modal-card rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:88vh;display:flex;flex-direction:column;">
         <div class="flex items-center justify-between px-5 pt-5 pb-2 flex-shrink-0">
             <h2 class="font-extrabold text-xl text-gray-900">🎨 Украшения профиля</h2>
             <button id="closeCustomizeBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">&times;</button>
@@ -1549,7 +1582,7 @@
 
 <!-- МОДАЛКА: КОД ЗАДАНИЯ / QR -->
 <div id="inviteModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm animate-scale-in p-6">
+    <div class="glass-modal-card rounded-3xl w-full max-w-sm animate-scale-in p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="font-extrabold text-lg text-gray-900">📎 Код задания</h3>
             <button id="closeInviteBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">&times;</button>
@@ -1567,7 +1600,7 @@
 
 <!-- МОДАЛКА: ВВОД КОДА ЗАДАНИЯ (для ученика) -->
 <div id="enterCodeModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm animate-scale-in p-6">
+    <div class="glass-modal-card rounded-3xl w-full max-w-sm animate-scale-in p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="font-extrabold text-lg text-gray-900">🔑 Войти по коду</h3>
             <button id="closeEnterCodeBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">&times;</button>
@@ -1585,7 +1618,7 @@
 
 <!-- МОДАЛКА: ПОДТВЕРЖДЕНИЕ ВЫХОДА -->
 <div id="logoutConfirmModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-sm animate-scale-in p-6 text-center">
+    <div class="glass-modal-card rounded-3xl w-full max-w-sm animate-scale-in p-6 text-center">
         <div class="text-4xl mb-3">👋</div>
         <h3 class="font-extrabold text-lg text-gray-900 mb-2">Выйти из аккаунта?</h3>
         <p class="text-gray-500 text-sm mb-5">Вы уверены что хотите выйти?</p>
@@ -1598,7 +1631,7 @@
 
 <!-- МОДАЛКА: ПОДТВЕРЖДЕНИЕ НАЧАЛА ЗАДАНИЯ -->
 <div id="startTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
-    <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up p-5 pb-8">
+    <div class="glass-modal-card rounded-t-3xl w-full max-w-lg animate-fade-slide-up p-5 pb-8">
         <h3 class="font-extrabold text-lg text-gray-900 mb-1">Начать задание?</h3>
         <p class="text-sm text-gray-500 mb-4">Паузу взять нельзя. Убедитесь что готовы.</p>
         <div id="startTaskInfo" class="bg-blue-50 rounded-2xl p-4 mb-4 space-y-2"></div>
@@ -1624,7 +1657,7 @@
 
 <!-- МОДАЛКА: НАГРАДЫ -->
 <div id="awardsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
-    <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:85vh;display:flex;flex-direction:column;">
+    <div class="glass-modal-card rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:85vh;display:flex;flex-direction:column;">
         <div class="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
             <h2 class="font-extrabold text-xl text-gray-900">🏅 Мои достижения</h2>
             <button id="closeAwardsBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">&times;</button>
@@ -1773,6 +1806,9 @@
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
     let userSchool = null;
     let sessionReadSet = new Set(); // Фикс 8: прочитанные уведомления из Firestore
+
+    // Хелпер вибрации — короткий тактильный отклик
+    function vibrate(ms = 8) { if (navigator.vibrate) navigator.vibrate(ms); }
     let currentTask = null, currentPagesArray = [], currentPageAnswers = [], currentPage = 0;
     let completedTasksData = new Map();
     let mentorStudentsList = [];
@@ -1961,7 +1997,15 @@
         currentTab = null;
         switchNav("tasks");
 
-        // Запускаем всё параллельно
+        // ВАЖНО: сперва грузим прочитанные уведомления, иначе checkUnreadNotifs
+        // увидит пустой sessionReadSet и покажет всё как непрочитанное
+        try {
+            const rdoc = await db.collection("notifRead").doc(user.uid).get();
+            sessionReadSet = new Set();
+            if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
+        } catch(e) { sessionReadSet = new Set(); }
+
+        // Теперь запускаем остальное параллельно
         const tasks = [
             loadTasks(),
             checkUnreadNotifs(),
@@ -1975,12 +2019,6 @@
                 }).catch(()=>{})
             );
         }
-
-        // Уведомления и косметика — фоново, не блокируют
-        db.collection("notifRead").doc(user.uid).get().then(rdoc => {
-            sessionReadSet = new Set();
-            if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
-        }).catch(()=>{});
 
         playerInventory = { equipped: {} };
         loadPlayerInventory().then(() => { applyEquippedItems(); initAvatar(); }).catch(()=>{});
@@ -2384,8 +2422,8 @@
             const isOlympiad = (t.taskType === 'olympiad');
             const teacherName = await getTeacherName(t.createdBy);
             const card = document.createElement("div");
-            const borderColor = isOlympiad ? 'border-amber-200' : 'border-blue-100';
-            card.className = `bg-white rounded-2xl shadow-sm p-4 transition-all hover:shadow-md hover:-translate-y-0.5 border ${borderColor} ${expired ? 'opacity-60' : ''}`;
+            card.className = `task-card-glass rounded-3xl transition-all hover:-translate-y-0.5 ${expired ? 'opacity-50' : ''}`;
+            card.style.overflow = 'hidden';
 
             let badges = '';
             // Для олимпиады имя выдавшего не показываем ученику
@@ -2410,31 +2448,31 @@
             if (isOlympiad) badges += `<span class="task-badge" style="background:#fef9c3;color:#854d0e"><i class="fas fa-medal mr-1"></i>Олимпиада</span>`;
 
             card.innerHTML = `
-                ${isOlympiad && t.coverImage ? `<img src="${t.coverImage}" style="width:100%;height:160px;object-fit:cover;border-radius:16px 16px 0 0;display:block;" alt="">` : ''}
+                ${isOlympiad && t.coverImage ? `<img src="${t.coverImage}" style="width:100%;height:150px;object-fit:cover;display:block;" alt="">` : ''}
                 <div class="p-4">
-                    <div class="font-extrabold text-base text-gray-900 mb-1">${isOlympiad ? '🏆 ' : ''}${escapeHtml(t.title)}</div>
-                    ${isOlympiad && t.coverText ? `<div class="text-sm text-gray-600 mb-2" style="line-height:1.5;">${escapeHtml(t.coverText)}</div>` : ''}
+                    <div class="font-bold text-base text-gray-900 mb-1" style="letter-spacing:-0.01em;">${isOlympiad ? '🏆 ' : ''}${escapeHtml(t.title)}</div>
+                    ${isOlympiad && t.coverText ? `<div class="text-sm text-gray-500 mb-2" style="line-height:1.5;">${escapeHtml(t.coverText)}</div>` : ''}
                     <div class="flex flex-wrap gap-1.5 mb-3">${badges}</div>
                     <div class="flex gap-2">
-                        <button data-id="${t.id}" class="task-start flex-1 font-bold py-2 px-4 rounded-xl transition-all text-sm"
-                            style="background:${completed?'#f0fdf4':'#eff6ff'};color:${completed?'#15803d':'#1862CF'}">
-                            ${userRole === 'student' ? (completed ? '👁 Просмотреть' : '▶ Начать') : '👁 Просмотреть'}
+                        <button data-id="${t.id}" class="task-start-glass flex-1 font-semibold py-2.5 px-4 rounded-2xl transition-all text-sm"
+                            style="color:${completed?'#15803d':'#1862CF'}">
+                            ${userRole === 'student' ? (completed ? 'Просмотреть' : 'Начать') : 'Просмотреть'}
                         </button>
-                        ${isOlympiad && completed && userRole === 'student' ? `<button data-id="${t.id}" class="cert-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#fef9c3;color:#854d0e;">🎓 Сертификат</button>` : ''}
-                        ${userRole === 'mentor' ? `<button data-id="${t.id}" class="invite-code-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#f0fdf4;color:#15803d;" title="Код приглашения"><i class="fas fa-qrcode"></i></button>` : ''}
+                        ${isOlympiad && completed && userRole === 'student' ? `<button data-id="${t.id}" class="cert-btn-glass py-2.5 px-3 rounded-2xl text-sm font-semibold transition-all">🎓</button>` : ''}
+                        ${userRole === 'mentor' ? `<button data-id="${t.id}" class="invite-code-btn-glass py-2.5 px-3 rounded-2xl text-sm font-semibold transition-all" title="Код приглашения"><i class="fas fa-qrcode"></i></button>` : ''}
                     </div>
                 </div>`;
             container.appendChild(card);
         }
 
-        document.querySelectorAll(".invite-code-btn").forEach(btn => {
+        document.querySelectorAll(".invite-code-btn-glass").forEach(btn => {
             btn.addEventListener("click", async (e) => {
                 e.stopPropagation();
                 openInviteModal(btn.dataset.id);
             });
         });
 
-        document.querySelectorAll(".task-start").forEach(btn => btn.addEventListener("click", async () => {
+        document.querySelectorAll(".task-start-glass").forEach(btn => btn.addEventListener("click", async () => {
             const id = btn.dataset.id;
             const snap = await db.collection("tasks").doc(id).get();
             if (!snap.exists) return;
@@ -2468,7 +2506,7 @@
             openTaskForSolve();
         });
 
-        document.querySelectorAll(".cert-btn").forEach(btn => btn.addEventListener("click", async () => {
+        document.querySelectorAll(".cert-btn-glass").forEach(btn => btn.addEventListener("click", async () => {
             const id = btn.dataset.id;
             const snap = await db.collection("tasks").doc(id).get();
             if (snap.exists) {
@@ -2857,6 +2895,7 @@
                 <div style="flex:1;"><div style="font-weight:800;font-size:0.88rem;color:#7c3aed;">"${escapeHtml(playerInventory.customTitle)}"</div><div style="font-size:0.75rem;color:#a78bfa;">Ваш личный титул</div></div>
                 ${equipped ? '<span style="color:#8b5cf6;font-size:1.1rem;font-weight:900;">✓</span>' : ''}`;
             div.addEventListener('click', async () => {
+                vibrate();
                 if (!playerInventory.equipped) playerInventory.equipped = {};
                 playerInventory.equipped.title = '__custom__';
                 await savePlayerInventory();
@@ -2878,6 +2917,7 @@
                 <div style="flex:1;"><div style="font-weight:800;font-size:0.88rem;color:#0f172a;">${item.name}</div><div style="font-size:0.75rem;color:#6b7280;">${item.desc}</div></div>
                 ${equipped ? '<span style="color:#1862CF;font-size:1.1rem;font-weight:900;">✓</span>' : ''}`;
             div.addEventListener('click', async () => {
+                vibrate();
                 if (!playerInventory.equipped) playerInventory.equipped = {};
                 if (isNone) delete playerInventory.equipped[catKey];
                 else playerInventory.equipped[catKey] = item.id;
@@ -2901,7 +2941,7 @@
         renderCustItems();
     });
 
-    document.querySelectorAll('.cust-tab').forEach(btn => btn.addEventListener('click', () => { custCurrentCat = btn.dataset.cat; renderCustItems(); }));
+    document.querySelectorAll('.cust-tab').forEach(btn => btn.addEventListener('click', () => { vibrate(6); custCurrentCat = btn.dataset.cat; renderCustItems(); }));
     document.getElementById("customizeBtn")?.addEventListener("click", openCustomize);
     document.getElementById("customizeBtnMentor")?.addEventListener("click", openCustomize);
 
@@ -3596,7 +3636,7 @@
         prevBtn.disabled = (currentPage === 0);
         prevBtn.classList.remove("hidden"); // восстанавливаем после экрана результата
         pageCounter.innerText = `${currentPage + 1} / ${totalVirtualPages}`;
-        prevBtn.onclick = () => { if (currentPage > 0) { currentPage--; renderFullscreenTask(isReviewMode); } };
+        prevBtn.onclick = () => { if (currentPage > 0) { vibrate(); currentPage--; renderFullscreenTask(isReviewMode); } };
 
         if (isLastPage) {
             nextBtn.classList.add("hidden");
@@ -3605,7 +3645,7 @@
                 // Кнопка "Завершить" ведёт на экран результата
                 finishBtn.textContent = '';
                 finishBtn.innerHTML = '<i class="fas fa-flag-checkered mr-1"></i> Завершить';
-                finishBtn.onclick = () => { isResultPage = true; renderFullscreenTask(false); };
+                finishBtn.onclick = () => { vibrate(12); isResultPage = true; renderFullscreenTask(false); };
             } else {
                 finishBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Закрыть';
                 finishBtn.onclick = () => modal.classList.add("hidden");
@@ -3613,7 +3653,7 @@
         } else {
             nextBtn.classList.remove("hidden");
             finishBtn.classList.add("hidden");
-            nextBtn.onclick = () => { currentPage++; renderFullscreenTask(isReviewMode); };
+            nextBtn.onclick = () => { vibrate(); currentPage++; renderFullscreenTask(isReviewMode); };
         }
 
         document.getElementById("closeTaskBtn").onclick = () => modal.classList.add("hidden");
