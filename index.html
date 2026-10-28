@@ -601,6 +601,37 @@
         }
         
         /* Карточка элемента задания */
+        /* ===== МИНИМАЛИСТИЧНАЯ КАРТОЧКА ЗАДАНИЯ ===== */
+        .task-card-glass {
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 1px 2px rgba(15,23,42,0.03), 0 12px 32px rgba(15,23,42,0.05);
+        }
+        .task-card-glass:hover {
+            box-shadow: 0 2px 4px rgba(15,23,42,0.05), 0 16px 40px rgba(15,23,42,0.08);
+        }
+
+        /* Стеклянная модалка — применяется к внутренней карточке */
+        .glass-modal-card {
+            background: rgba(255,255,255,0.82) !important;
+            backdrop-filter: blur(28px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* Стеклянные кнопки карточки задания */
+        .task-start-glass, .cert-btn-glass, .invite-code-btn-glass {
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(12px) saturate(150%);
+            -webkit-backdrop-filter: blur(12px) saturate(150%);
+            border: 1px solid rgba(255,255,255,0.7);
+        }
+        .task-start-glass:active, .cert-btn-glass:active, .invite-code-btn-glass:active { transform: scale(0.96); }
+        .cert-btn-glass { color: #854d0e; }
+        .invite-code-btn-glass { color: #15803d; }
+
         .elem-card {
             background: white;
             border-radius: 20px;
@@ -1347,6 +1378,13 @@
                         <span class="text-xs text-gray-400">Ученик не сможет взять паузу</span>
                     </div>
                 </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-1">🔁 Количество попыток</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" id="maxAttempts" min="1" max="99" placeholder="1" value="1" class="border rounded-xl p-3 w-28 text-sm">
+                        <span class="text-xs text-gray-400">Сколько раз ученик может пройти задание (по умолчанию 1)</span>
+                    </div>
+                </div>
                 <div class="border-t pt-4">
                     <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">Страницы</h3><button id="addPageBtn" class="bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm"><i class="fas fa-plus mr-1"></i> Страницу</button></div>
                     <div id="pagesContainer" class="space-y-4 max-h-96 overflow-auto mb-5"></div>
@@ -1609,6 +1647,17 @@
     </div>
 </div>
 
+<!-- МОДАЛКА: ИСТОРИЯ ПОПЫТОК -->
+<div id="attemptsHistoryModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
+    <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:80vh;display:flex;flex-direction:column;">
+        <div class="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
+            <h2 class="font-extrabold text-lg text-gray-900">🔁 История попыток</h2>
+            <button id="closeAttemptsHistoryBtn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">&times;</button>
+        </div>
+        <div id="attemptsHistoryList" class="flex-1 overflow-y-auto px-5 pb-8 space-y-2"></div>
+    </div>
+</div>
+
 <!-- МОДАЛКА: ПУБЛИЧНЫЙ ПРОФИЛЬ -->
 <div id="publicProfileModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-end justify-center">
     <div class="bg-white rounded-t-3xl w-full max-w-lg animate-fade-slide-up" style="max-height:82vh;display:flex;flex-direction:column;">
@@ -1773,8 +1822,60 @@
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
     let userSchool = null;
     let sessionReadSet = new Set(); // Фикс 8: прочитанные уведомления из Firestore
+
     let currentTask = null, currentPagesArray = [], currentPageAnswers = [], currentPage = 0;
-    let completedTasksData = new Map();
+    let completedTasksData = new Map(); // taskId -> [attempt1, attempt2, ...]
+
+    // Хелперы для работы с попытками
+    function getAttempts(taskId) { return completedTasksData.get(taskId) || []; }
+    function getAttemptsCount(taskId) { return getAttempts(taskId).length; }
+    function getLastAttempt(taskId) {
+        const arr = getAttempts(taskId);
+        if (arr.length === 0) return null;
+        // Берём попытку с самой последней датой
+        return arr.slice().sort((a,b) => (b.completedAt?.seconds||0) - (a.completedAt?.seconds||0))[0];
+    }
+    function getBestAttempt(taskId) {
+        const arr = getAttempts(taskId);
+        if (arr.length === 0) return null;
+        return arr.slice().sort((a,b) => (b.percent||0) - (a.percent||0))[0];
+    }
+    function canRetakeTask(task) {
+        const max = task.maxAttempts || 1;
+        return getAttemptsCount(task.id) < max;
+    }
+
+    function openAttemptsHistory(taskId) {
+        const attempts = getAttempts(taskId).slice().sort((a,b) => (a.completedAt?.seconds||0) - (b.completedAt?.seconds||0));
+        const list = document.getElementById("attemptsHistoryList");
+        list.innerHTML = "";
+        attempts.forEach((att, idx) => {
+            const pct = att.percent || 0;
+            const color = pct >= 80 ? '#15803d' : pct >= 50 ? '#854d0e' : '#991b1b';
+            const bg = pct >= 80 ? '#f0fdf4' : pct >= 50 ? '#fffbeb' : '#fef2f2';
+            const dateStr = att.completedAt?.toDate ? att.completedAt.toDate().toLocaleDateString('ru-RU', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+            const row = document.createElement('div');
+            row.style.cssText = `display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:${bg};border:1px solid ${color}22;`;
+            row.innerHTML = `
+                <div style="width:40px;height:40px;border-radius:12px;background:white;display:flex;align-items:center;justify-content:center;font-weight:900;color:${color};flex-shrink:0;">${idx+1}</div>
+                <div style="flex:1;">
+                    <div style="font-weight:800;color:${color};">${att.earnedPoints}/${att.totalPoints} баллов · ${pct}%</div>
+                    <div style="font-size:0.75rem;color:#94a3b8;">${dateStr}</div>
+                </div>
+                <button class="view-attempt-btn text-xs font-bold px-3 py-1.5 rounded-xl" style="background:white;color:${color};" data-idx="${idx}">Открыть</button>`;
+            row.querySelector('.view-attempt-btn').addEventListener('click', () => {
+                document.getElementById("attemptsHistoryModal").classList.add("hidden");
+                currentPageAnswers = att.studentAnswers || [];
+                currentPage = 0;
+                isReviewModeGlobal = true;
+                renderFullscreenTask(true);
+            });
+            list.appendChild(row);
+        });
+        document.getElementById("attemptsHistoryModal").classList.remove("hidden");
+    }
+    document.getElementById("closeAttemptsHistoryBtn")?.addEventListener("click", () => document.getElementById("attemptsHistoryModal").classList.add("hidden"));
+    document.getElementById("attemptsHistoryModal")?.addEventListener("click", e => { if(e.target===document.getElementById("attemptsHistoryModal")) document.getElementById("attemptsHistoryModal").classList.add("hidden"); });
     let mentorStudentsList = [];
     let teachersCache = new Map();
     let isReviewModeGlobal = false;
@@ -1961,7 +2062,15 @@
         currentTab = null;
         switchNav("tasks");
 
-        // Запускаем всё параллельно
+        // ВАЖНО: сперва грузим прочитанные уведомления, иначе checkUnreadNotifs
+        // увидит пустой sessionReadSet и покажет всё как непрочитанное
+        try {
+            const rdoc = await db.collection("notifRead").doc(user.uid).get();
+            sessionReadSet = new Set();
+            if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
+        } catch(e) { sessionReadSet = new Set(); }
+
+        // Теперь запускаем остальное параллельно
         const tasks = [
             loadTasks(),
             checkUnreadNotifs(),
@@ -1971,16 +2080,15 @@
             tasks.push(
                 db.collection("results").where("studentId","==",user.uid).get().then(snap => {
                     completedTasksData.clear();
-                    snap.forEach(d => completedTasksData.set(d.data().taskId, d.data()));
+                    snap.forEach(d => {
+                        const data = d.data();
+                        const taskId = data.taskId;
+                        if (!completedTasksData.has(taskId)) completedTasksData.set(taskId, []);
+                        completedTasksData.get(taskId).push({ id: d.id, ...data });
+                    });
                 }).catch(()=>{})
             );
         }
-
-        // Уведомления и косметика — фоново, не блокируют
-        db.collection("notifRead").doc(user.uid).get().then(rdoc => {
-            sessionReadSet = new Set();
-            if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
-        }).catch(()=>{});
 
         playerInventory = { equipped: {} };
         loadPlayerInventory().then(() => { applyEquippedItems(); initAvatar(); }).catch(()=>{});
@@ -2378,25 +2486,34 @@
         }
         container.innerHTML = "";
         for (const t of tasks) {
-            const completed = completedTasksData.get(t.id);
+            const attemptsCount = getAttemptsCount(t.id);
+            const hasCompleted = attemptsCount > 0;
+            const bestAttempt = getBestAttempt(t.id);
+            const maxAttempts = t.maxAttempts || 1;
+            const canRetake = attemptsCount < maxAttempts;
             const pagesCount = normalizePages(t.pages).length;
             const expired = isTaskExpired(t.deadline);
             const isOlympiad = (t.taskType === 'olympiad');
             const teacherName = await getTeacherName(t.createdBy);
             const card = document.createElement("div");
             const borderColor = isOlympiad ? 'border-amber-200' : 'border-blue-100';
-            card.className = `bg-white rounded-2xl shadow-sm p-4 transition-all hover:shadow-md hover:-translate-y-0.5 border ${borderColor} ${expired ? 'opacity-60' : ''}`;
+            card.className = `bg-white rounded-2xl shadow-sm p-4 transition-all hover:shadow-md hover:-translate-y-0.5 border ${borderColor} ${expired && !canRetake ? 'opacity-60' : ''}`;
 
             let badges = '';
-            // Для олимпиады имя выдавшего не показываем ученику
             if (userRole === 'student' && !isOlympiad) badges += `<span class="task-badge" style="background:#eff6ff;color:#1862CF"><i class="fas fa-user-tie mr-1"></i>${escapeHtml(teacherName)}</span>`;
             if (userRole === 'mentor') badges += `<span class="task-badge" style="background:#eff6ff;color:#1862CF"><i class="fas fa-users mr-1"></i>${escapeHtml(t.targetClass)}</span>`;
             else badges += `<span class="task-badge" style="background:#f0fdf4;color:#15803d"><i class="fas fa-users mr-1"></i>${escapeHtml(t.targetClass)}</span>`;
             badges += `<span class="task-badge" style="background:#faf5ff;color:#7c3aed"><i class="fas fa-file-alt mr-1"></i>${pagesCount} стр.</span>`;
             if (t.timeLimitSeconds) badges += `<span class="task-badge" style="background:#fff7ed;color:#c2410c"><i class="fas fa-clock mr-1"></i>${formatSeconds(t.timeLimitSeconds)}</span>`;
             if (t.deadline) badges += `<span class="task-badge" style="background:${expired?'#fef2f2;color:#dc2626':'#f0f9ff;color:#0369a1'}"><i class="fas fa-calendar mr-1"></i>${expired?'Истёк: ':'До: '}${new Date(t.deadline).toLocaleDateString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`;
-            if (completed) {
-                const pct = completed.percent || 0;
+
+            // Бейдж попыток — если maxAttempts > 1
+            if (maxAttempts > 1 && userRole === 'student') {
+                badges += `<span class="task-badge" style="background:#eef2ff;color:#4338ca"><i class="fas fa-redo mr-1"></i>Попытка ${attemptsCount}/${maxAttempts}</span>`;
+            }
+
+            if (hasCompleted && bestAttempt) {
+                const pct = bestAttempt.percent || 0;
                 const badgeStyle = pct >= 80
                     ? 'background:#d1fae5;color:#065f46;border:1.5px solid #6ee7b7'
                     : pct >= 50
@@ -2404,10 +2521,24 @@
                     : 'background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5';
                 const pctEmoji = pct >= 80 ? '✅' : pct >= 50 ? '⚠️' : '❌';
                 const pts = calcTaskPoints(pct, isOlympiad);
-                badges += `<span class="task-badge" style="${badgeStyle};font-size:0.78rem;padding:4px 10px;">${pctEmoji} Пройдено: ${completed.earnedPoints}/${completed.totalPoints} · ${pct}%</span>`;
+                const label = maxAttempts > 1 ? 'Лучший результат' : 'Пройдено';
+                badges += `<span class="task-badge" style="${badgeStyle};font-size:0.78rem;padding:4px 10px;">${pctEmoji} ${label}: ${bestAttempt.earnedPoints}/${bestAttempt.totalPoints} · ${pct}%</span>`;
                 badges += `<span class="task-badge" style="background:#fefce8;color:#92400e">⭐ ${pts} балл${pluralPoints2(pts)}</span>`;
             }
             if (isOlympiad) badges += `<span class="task-badge" style="background:#fef9c3;color:#854d0e"><i class="fas fa-medal mr-1"></i>Олимпиада</span>`;
+
+            // Определяем текст и состояние кнопки
+            let btnLabel, btnDisabled = false;
+            if (userRole !== 'student') {
+                btnLabel = '👁 Просмотреть';
+            } else if (!hasCompleted) {
+                btnLabel = expired ? '⏰ Истекло' : '▶ Начать';
+                btnDisabled = expired;
+            } else if (canRetake && !expired) {
+                btnLabel = `🔁 Пройти снова (${attemptsCount}/${maxAttempts})`;
+            } else {
+                btnLabel = '👁 Просмотреть результат';
+            }
 
             card.innerHTML = `
                 ${isOlympiad && t.coverImage ? `<img src="${t.coverImage}" style="width:100%;height:160px;object-fit:cover;border-radius:16px 16px 0 0;display:block;" alt="">` : ''}
@@ -2416,11 +2547,12 @@
                     ${isOlympiad && t.coverText ? `<div class="text-sm text-gray-600 mb-2" style="line-height:1.5;">${escapeHtml(t.coverText)}</div>` : ''}
                     <div class="flex flex-wrap gap-1.5 mb-3">${badges}</div>
                     <div class="flex gap-2">
-                        <button data-id="${t.id}" class="task-start flex-1 font-bold py-2 px-4 rounded-xl transition-all text-sm"
-                            style="background:${completed?'#f0fdf4':'#eff6ff'};color:${completed?'#15803d':'#1862CF'}">
-                            ${userRole === 'student' ? (completed ? '👁 Просмотреть' : '▶ Начать') : '👁 Просмотреть'}
+                        <button data-id="${t.id}" class="task-start flex-1 font-bold py-2 px-4 rounded-xl transition-all text-sm" ${btnDisabled?'disabled':''}
+                            style="background:${hasCompleted?'#f0fdf4':'#eff6ff'};color:${hasCompleted?'#15803d':'#1862CF'};${btnDisabled?'opacity:0.5;cursor:not-allowed;':''}">
+                            ${btnLabel}
                         </button>
-                        ${isOlympiad && completed && userRole === 'student' ? `<button data-id="${t.id}" class="cert-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#fef9c3;color:#854d0e;">🎓 Сертификат</button>` : ''}
+                        ${hasCompleted && getAttemptsCount(t.id) > 1 ? `<button data-id="${t.id}" class="attempts-history-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#f3f4f6;color:#6b7280;" title="История попыток"><i class="fas fa-history"></i></button>` : ''}
+                        ${isOlympiad && hasCompleted && userRole === 'student' ? `<button data-id="${t.id}" class="cert-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#fef9c3;color:#854d0e;">🎓 Сертификат</button>` : ''}
                         ${userRole === 'mentor' ? `<button data-id="${t.id}" class="invite-code-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#f0fdf4;color:#15803d;" title="Код приглашения"><i class="fas fa-qrcode"></i></button>` : ''}
                     </div>
                 </div>`;
@@ -2434,16 +2566,32 @@
             });
         });
 
+        document.querySelectorAll(".attempts-history-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => { e.stopPropagation(); openAttemptsHistory(btn.dataset.id); });
+        });
+
         document.querySelectorAll(".task-start").forEach(btn => btn.addEventListener("click", async () => {
+            if (btn.disabled) return;
             const id = btn.dataset.id;
             const snap = await db.collection("tasks").doc(id).get();
             if (!snap.exists) return;
             currentTask = { id: snap.id, ...snap.data() };
-            if (userRole === "student" && isTaskExpired(currentTask.deadline) && !completedTasksData.has(id)) {
+
+            const attemptsCount = getAttemptsCount(id);
+            const maxAttempts = currentTask.maxAttempts || 1;
+            const hasCompleted = attemptsCount > 0;
+            const canRetake = attemptsCount < maxAttempts;
+            const expired = isTaskExpired(currentTask.deadline);
+
+            if (userRole !== "student") { openTaskForMentor(); return; }
+
+            // Истекло и попыток не осталось / не начато
+            if (expired && (!hasCompleted || !canRetake)) {
+                if (hasCompleted) { openStudentReview(id); return; }
                 showToast("⏰ Срок выполнения этого задания истёк", true); return;
             }
-            if (userRole === "student" && completedTasksData.has(id)) { openStudentReview(id); return; }
-            if (userRole !== "student") { openTaskForMentor(); return; }
+            // Уже прошёл максимум попыток — только просмотр лучшей
+            if (hasCompleted && !canRetake) { openStudentReview(id); return; }
 
             // Показываем модалку подтверждения с инфо о задании
             const info = document.getElementById("startTaskInfo");
@@ -2454,6 +2602,7 @@
                 ${t.taskType==='olympiad'?'<div class="flex items-center gap-2 text-amber-700 font-bold text-sm"><span>🏆</span> Олимпиада</div>':'' }
                 <div class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-user-tie text-blue-400 w-4"></i><span>От: <b>${escapeHtml(teacherName)}</b></span></div>
                 <div class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-file-alt text-blue-400 w-4"></i><span>Страниц: <b>${pagesCount}</b></span></div>
+                ${maxAttempts > 1 ? `<div class="flex items-center gap-2 text-sm text-indigo-600"><i class="fas fa-redo text-indigo-400 w-4"></i><span>Попытка <b>${attemptsCount+1} из ${maxAttempts}</b></span></div>` : ''}
                 ${t.deadline?`<div class="flex items-center gap-2 text-sm ${isTaskExpired(t.deadline)?'text-red-500':'text-gray-700'}"><i class="fas fa-calendar text-blue-400 w-4"></i><span>До: <b>${new Date(t.deadline).toLocaleDateString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</b></span></div>`:''}
                 ${t.timeLimitSeconds?`<div class="flex items-center gap-2 text-sm text-orange-600"><i class="fas fa-clock text-orange-400 w-4"></i><span>Таймер: <b>${formatSeconds(t.timeLimitSeconds)}</b> — пауза невозможна</span></div>`:''}
             `;
@@ -2959,7 +3108,9 @@
                 const doc = snap.docs[0];
                 currentTask = { id: doc.id, ...doc.data() };
                 document.getElementById("enterCodeModal").classList.add("hidden");
-                if (completedTasksData.has(currentTask.id)) {
+                const attemptsCount = getAttemptsCount(currentTask.id);
+                const maxAttempts = currentTask.maxAttempts || 1;
+                if (attemptsCount > 0 && attemptsCount >= maxAttempts) {
                     openStudentReview(currentTask.id);
                 } else {
                     const info = document.getElementById("startTaskInfo");
@@ -2968,6 +3119,7 @@
                     info.innerHTML = `
                         <div class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-user-tie text-blue-400 w-4"></i><span>От: <b>${escapeHtml(teacherName)}</b></span></div>
                         <div class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-book text-blue-400 w-4"></i><span><b>${escapeHtml(t.title||'')}</b></span></div>
+                        ${maxAttempts > 1 ? `<div class="flex items-center gap-2 text-sm text-indigo-600"><i class="fas fa-redo text-indigo-400 w-4"></i><span>Попытка <b>${attemptsCount+1} из ${maxAttempts}</b></span></div>` : ''}
                         ${t.timeLimitSeconds?`<div class="flex items-center gap-2 text-sm text-orange-600"><i class="fas fa-clock text-orange-400 w-4"></i><span>Таймер: <b>${formatSeconds(t.timeLimitSeconds)}</b></span></div>`:''}`;
                     document.getElementById("startTaskModal").classList.remove("hidden");
                 }
@@ -3350,7 +3502,7 @@
     }
 
     async function openStudentReview(taskId) {
-        const saved = completedTasksData.get(taskId);
+        const saved = getBestAttempt(taskId);
         if (saved && saved.studentAnswers) {
             let pages = normalizePages(currentTask.pages);
             pages = await loadTaskWithMedia(currentTask.id, pages);
@@ -3708,6 +3860,7 @@
         }
 
         return `<div class="elem-card" data-elem-index="${i}">
+            <div class="elem-badge">${typeLabels[el.type]||el.type}${pointsLabel}</div>
             ${inner}
         </div>`;
     }
@@ -3809,17 +3962,20 @@
     }
 
     async function saveResult() {
-        if (completedTasksData.has(currentTask.id)) {
-            showToast("Результат уже сохранён!", true);
+        const maxAttempts = currentTask.maxAttempts || 1;
+        const attemptsAlready = getAttemptsCount(currentTask.id);
+
+        if (attemptsAlready >= maxAttempts) {
+            showToast("Попытки закончились!", true);
             const closeBtn = document.getElementById("closeTaskBtn");
             if (closeBtn) closeBtn.onclick = () => document.getElementById("taskFullscreen").classList.add("hidden");
             return;
         }
+
         const totalPoints = getTotalPoints(), earnedPoints = getEarnedPoints();
         const percent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
 
-        // Баг-фикс: убираем base64-медиа из ответов перед сохранением в Firebase
-        // (они могут превысить лимит 1МБ и обрезать весь документ)
+        // Убираем base64-медиа из ответов перед сохранением в Firebase
         const stripped = (currentPageAnswers || []).map(pageAns => {
             const clean = {};
             Object.keys(pageAns || {}).forEach(k => {
@@ -3836,35 +3992,44 @@
         const saveBtn = document.getElementById("finalSaveResultBtn");
         if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Сохраняем...'; }
         try {
+            // Перепроверяем актуальное число попыток в Firebase (защита от двойного клика/вкладок)
             const existingSnap = await db.collection("results")
                 .where("studentId","==",currentUserObj.uid)
                 .where("taskId","==",currentTask.id).get();
-            if (!existingSnap.empty) {
-                showToast("Результат уже сохранён!", true);
-                completedTasksData.set(currentTask.id, existingSnap.docs[0].data());
+            if (existingSnap.size >= maxAttempts) {
+                showToast("Попытки закончились!", true);
                 clearTaskTimer();
                 const closeBtn = document.getElementById("closeTaskBtn");
                 if (closeBtn) closeBtn.onclick = () => document.getElementById("taskFullscreen").classList.add("hidden");
                 return;
             }
+
             await db.collection("results").add({
                 taskId: currentTask.id, taskTitle: currentTask.title,
                 studentId: currentUserObj.uid, studentEmail: currentUserObj.email,
                 earnedPoints, totalPoints, percent,
+                attemptNumber: existingSnap.size + 1,
                 studentAnswers: stripped,
                 lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
                 completedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+
+            // Перезагружаем все попытки студента
             const snap = await db.collection("results").where("studentId","==",currentUserObj.uid).get();
             completedTasksData.clear();
-            snap.forEach(d => completedTasksData.set(d.data().taskId, d.data()));
+            snap.forEach(d => {
+                const data = d.data();
+                const taskId = data.taskId;
+                if (!completedTasksData.has(taskId)) completedTasksData.set(taskId, []);
+                completedTasksData.get(taskId).push({ id: d.id, ...data });
+            });
+
             clearTaskTimer();
             showToast(`Сохранено! ${earnedPoints}/${totalPoints} (${percent}%)`);
             if (percent >= 60) launchConfetti();
-            // Фикс 5: автоматически закрываем окно задания после сохранения
             document.getElementById("taskFullscreen").classList.add("hidden");
             await checkAndGrantAwards();
-            await loadTasks(); // ждём обновления списка чтобы плашка показала результат
+            await loadTasks();
         } catch(err) {
             showToast("Ошибка: " + err.message, true);
             console.error("SaveResult error:", err);
@@ -4103,6 +4268,7 @@
             const timeMins = parseInt(document.getElementById("timeLimitMinutes")?.value || "0");
             const timeLimitSeconds = timeMins > 0 ? timeMins * 60 : null;
             const taskType = document.getElementById("taskTypeField")?.value || "homework";
+            const maxAttempts = Math.max(1, parseInt(document.getElementById("maxAttempts")?.value || "1"));
 
             // Множественные классы — сохраняем как массив
             const targetClasses = targetClass.split(",").map(s=>s.trim()).filter(Boolean);
@@ -4153,7 +4319,7 @@
                     title,
                     targetClass: targetClasses.length === 1 ? targetClasses[0] : targetClasses,
                     pages: pagesObj,
-                    published: true, deadline, taskType,
+                    published: true, deadline, taskType, maxAttempts,
                     ...(timeLimitSeconds ? { timeLimitSeconds } : {}),
                     ...(taskType === 'olympiad' && coverText ? { coverText } : {}),
                     createdBy: currentUserObj.uid,
@@ -4194,6 +4360,7 @@
                 document.getElementById("deadlineDate").value = "";
                 document.getElementById("deadlineTime").value = "";
                 if (document.getElementById("timeLimitMinutes")) document.getElementById("timeLimitMinutes").value = "";
+                if (document.getElementById("maxAttempts")) document.getElementById("maxAttempts").value = "1";
                 loadMyTasksForMentor();
                 loadTasks();
             } catch(err) {
