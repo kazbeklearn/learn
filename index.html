@@ -94,22 +94,40 @@
         .liquid-glass > * { position: relative; z-index: 1; }
 
         /* Навигация — liquid glass */
+        /* Плавающая «таблетка» как в iOS — отдельно от края экрана */
         .bottom-nav {
-            background: rgba(255,255,255,0.72) !important;
-            backdrop-filter: blur(28px) saturate(200%) brightness(1.05) !important;
-            -webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.05) !important;
-            border-top: 1px solid rgba(255,255,255,0.6) !important;
-            box-shadow: 0 -4px 24px rgba(24,98,207,0.08), 0 -1px 0 rgba(255,255,255,0.8) inset !important;
-            border-radius: 28px 28px 0 0 !important;
+            left: 12px !important;
+            right: 12px !important;
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 6px !important;
+            gap: 2px;
+            background: rgba(255,255,255,0.58) !important;
+            backdrop-filter: blur(30px) saturate(210%) brightness(1.04) !important;
+            -webkit-backdrop-filter: blur(30px) saturate(210%) brightness(1.04) !important;
+            border: 1px solid rgba(255,255,255,0.75) !important;
+            border-radius: 999px !important;
+            box-shadow:
+                0 10px 32px rgba(15,23,42,0.16),
+                0 2px 8px rgba(15,23,42,0.08),
+                0 1px 0 rgba(255,255,255,0.9) inset !important;
         }
 
-        /* Активный пункт меню */
-        .nav-item { transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1); border-radius: 20px; cursor: pointer; }
+        /* Активный пункт меню — стеклянная капсула внутри таблетки */
+        .nav-item {
+            transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+            border-radius: 999px;
+            cursor: pointer;
+            flex: 1;
+            min-width: 0;
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+        }
         .nav-item.active {
-            background: rgba(24,98,207,0.12);
+            background: rgba(24,98,207,0.14);
             color: #1862CF;
-            transform: scale(1.08) translateY(-2px);
-            box-shadow: 0 4px 12px rgba(24,98,207,0.15);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 8px rgba(24,98,207,0.12);
         }
         .nav-item:active { transform: scale(0.92) !important; }
 
@@ -268,8 +286,12 @@
                 justify-content: flex-start !important;
                 align-items: stretch !important;
                 padding: 20px 12px !important;
+                max-width: none !important;
+                margin: 0 !important;
                 border-radius: 0 !important;
                 border-top: none !important;
+                border-right: none !important;
+                border-bottom: none !important;
                 border-left: 1px solid rgba(24,98,207,0.1) !important;
                 background: rgba(255,255,255,0.82) !important;
                 backdrop-filter: blur(24px) !important;
@@ -300,6 +322,7 @@
                 padding: 11px 14px !important;
                 border-radius: 12px !important;
                 width: 100%;
+                flex: none;
                 text-align: left;
             }
             .nav-item i { font-size: 1rem !important; width: 18px; text-align: center; flex-shrink: 0; }
@@ -2058,28 +2081,21 @@
             if (badge && nameSpan) { nameSpan.textContent = userSchool; badge.classList.remove("hidden"); }
         }
 
-        // Параллельная загрузка — не блокируем UI
+        // ВАЖНО: до отрисовки заданий нужно знать результаты ученика и прочитанные
+        // уведомления. Грузим их параллельно друг с другом, но ДО loadTasks —
+        // иначе выполненные задания рисуются как «Начать».
         currentTab = null;
-        switchNav("tasks");
+        sessionReadSet = new Set();
+        completedTasksData.clear();
 
-        // ВАЖНО: сперва грузим прочитанные уведомления, иначе checkUnreadNotifs
-        // увидит пустой sessionReadSet и покажет всё как непрочитанное
-        try {
-            const rdoc = await db.collection("notifRead").doc(user.uid).get();
-            sessionReadSet = new Set();
-            if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
-        } catch(e) { sessionReadSet = new Set(); }
-
-        // Теперь запускаем остальное параллельно
-        const tasks = [
-            loadTasks(),
-            checkUnreadNotifs(),
+        const preload = [
+            db.collection("notifRead").doc(user.uid).get().then(rdoc => {
+                if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
+            }).catch(()=>{})
         ];
-
         if (userRole === "student") {
-            tasks.push(
+            preload.push(
                 db.collection("results").where("studentId","==",user.uid).get().then(snap => {
-                    completedTasksData.clear();
                     snap.forEach(d => {
                         const data = d.data();
                         const taskId = data.taskId;
@@ -2089,6 +2105,11 @@
                 }).catch(()=>{})
             );
         }
+        await Promise.all(preload);
+
+        // Теперь данные готовы — рисуем задания
+        switchNav("tasks");
+        const tasks = [ loadTasks(), checkUnreadNotifs() ];
 
         playerInventory = { equipped: {} };
         loadPlayerInventory().then(() => { applyEquippedItems(); initAvatar(); }).catch(()=>{});
