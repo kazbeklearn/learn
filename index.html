@@ -124,11 +124,22 @@
             padding-left: 6px !important;
             padding-right: 6px !important;
         }
-        .nav-item.active {
+        .nav-item { position: relative; z-index: 1; }
+        .nav-item.active { background: transparent; box-shadow: none; color: #1862CF; }
+        .nav-item.nav-preview { color: #1862CF; }
+
+        /* Скользящая стеклянная плашка под активным пунктом */
+        #navIndicator {
+            position: absolute; left: 0; top: 0; width: 0; height: 0;
+            border-radius: 999px; z-index: 0; pointer-events: none; opacity: 0;
             background: rgba(24,98,207,0.14);
-            color: #1862CF;
-            box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 8px rgba(24,98,207,0.12);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 2px 8px rgba(24,98,207,0.14);
+            transition: transform .45s cubic-bezier(.22,1,.36,1), width .45s cubic-bezier(.22,1,.36,1), opacity .2s ease;
+            will-change: transform;
         }
+        #navIndicator.no-anim  { transition: opacity .2s ease; }
+        #navIndicator.dragging { transition: opacity .2s ease; } /* во время перетаскивания идёт строго за пальцем */
+        .bottom-nav { touch-action: none; -webkit-user-select: none; user-select: none; }
         .nav-item:active { transform: scale(0.92) !important; }
 
         /* Liquid glass — хедер */
@@ -327,7 +338,9 @@
             }
             .nav-item i { font-size: 1rem !important; width: 18px; text-align: center; flex-shrink: 0; }
             .nav-item span { font-size: 0.85rem !important; margin-top: 0 !important; font-weight: 600; }
-            .nav-item.active { transform: none !important; box-shadow: 0 2px 8px rgba(24,98,207,0.15); }
+            .nav-item.active { transform: none !important; background: rgba(24,98,207,0.12); box-shadow: 0 2px 8px rgba(24,98,207,0.15); }
+            #navIndicator { display: none !important; }
+            .bottom-nav { touch-action: auto; }
             .nav-item:active { transform: scale(0.97) !important; }
 
             /* Ограничиваем ширину карточек/контента */
@@ -1274,13 +1287,16 @@
 
 <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
 <div id="mainApp" class="hidden min-h-screen flex flex-col">
-    <div class="white-header py-2 px-4 flex justify-between items-center sticky top-0 z-20 bg-white" id="mainHeader">
-        <img id="mainLogo" src="img1/logo.png" alt="Логотип" class="logo-img h-14 w-auto object-contain" onerror="this.onerror=null; this.style.display='none'">
-        <!-- Колокольчик для учителя в шапке -->
-        <button id="headerNotifBtn" class="mentor-only hidden relative w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all">
-            <i class="fas fa-bell text-lg"></i>
-            <span id="headerNotifBadge" class="hidden absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center" style="font-size:9px;"></span>
-        </button>
+    <div class="white-header py-2 px-4 sticky top-0 z-20 bg-white" id="mainHeader" style="display:grid;grid-template-columns:44px 1fr 44px;align-items:center;">
+        <div></div>
+        <img id="mainLogo" src="img1/logo.png" alt="Логотип" class="logo-img h-14 w-auto object-contain" style="justify-self:center;" onerror="this.onerror=null; this.style.display='none'">
+        <div style="display:flex;justify-content:flex-end;">
+            <!-- Колокольчик для учителя в шапке -->
+            <button id="headerNotifBtn" class="mentor-only hidden relative w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                <i class="fas fa-bell text-lg"></i>
+                <span id="headerNotifBadge" class="hidden absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center" style="font-size:9px;"></span>
+            </button>
+        </div>
     </div>
     <div id="greetingContainer" class="greeting-blue-block hidden">
         <div class="flex items-center gap-4">
@@ -1467,6 +1483,7 @@
         </div>
     </div>
     <div class="bottom-nav fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center py-2 px-4 z-20" id="bottomNav" style="display:none;">
+        <div id="navIndicator"></div>
         <button data-nav="tasks" class="nav-item flex flex-col items-center py-1 px-3 rounded-full text-gray-600"><i class="fas fa-tasks text-xl"></i><span class="text-xs mt-1">Задания</span></button>
         <button data-nav="school" class="nav-item flex flex-col items-center py-1 px-3 rounded-full text-gray-600"><i class="fas fa-school text-xl"></i><span class="text-xs mt-1">Школа</span></button>
         <button data-nav="constructor" class="nav-item mentor-only flex flex-col items-center py-1 px-3 rounded-full text-gray-600"><i class="fas fa-pen-ruler text-xl"></i><span class="text-xs mt-1">Конструктор</span></button>
@@ -1844,7 +1861,27 @@
 
     let currentUserObj = null, userRole = null, userClass = null, userDisplayName = "Пользователь";
     let userSchool = null;
-    let sessionReadSet = new Set(); // Фикс 8: прочитанные уведомления из Firestore
+    let sessionReadSet = new Set(); // прочитанные уведомления
+
+    // Прочитанное хранится и на сервере (notifRead/{uid}), и локально — если сервер
+    // отклонит запись (например, из-за правил Firestore), состояние всё равно не потеряется.
+    function readStoreKey(uid) { return `notif_read_v2_${uid}`; }
+    function loadLocalReadIds(uid) {
+        try { return JSON.parse(localStorage.getItem(readStoreKey(uid)) || "[]"); } catch (e) { return []; }
+    }
+    function persistReadSet() {
+        if (!currentUserObj) return;
+        const uid = currentUserObj.uid;
+        const ids = [...sessionReadSet];
+        try { localStorage.setItem(readStoreKey(uid), JSON.stringify(ids)); } catch (e) {}
+        db.collection("notifRead").doc(uid).set({ ids }).catch(err => {
+            console.error("notifRead: запись не удалась:", err);
+            if (!window._notifWriteWarned) {
+                window._notifWriteWarned = true;
+                showToast("Прочитанное не сохраняется на сервере — проверьте правила Firestore для notifRead", true);
+            }
+        });
+    }
 
     let currentTask = null, currentPagesArray = [], currentPageAnswers = [], currentPage = 0;
     let completedTasksData = new Map(); // taskId -> [attempt1, attempt2, ...]
@@ -2031,6 +2068,7 @@
             playerInventory = { equipped: {} };
             pagesStore = [[]]; isResultPage = false;
             sessionReadSet = new Set();
+            const _cti = document.getElementById("customTitleInput"); if (_cti) _cti.value = '';
 
             hideLoadingScreen();
             document.getElementById("authScreen").classList.remove("hidden");
@@ -2091,7 +2129,8 @@
         const preload = [
             db.collection("notifRead").doc(user.uid).get().then(rdoc => {
                 if (rdoc.exists) (rdoc.data().ids||[]).forEach(id => sessionReadSet.add(id));
-            }).catch(()=>{})
+            }).catch(err => console.error("notifRead: чтение не удалось:", err))
+              .then(() => { loadLocalReadIds(user.uid).forEach(id => sessionReadSet.add(id)); })
         ];
         if (userRole === "student") {
             preload.push(
@@ -2195,7 +2234,112 @@
         if (tab === "notifications") setTimeout(loadNotifications, 120);
         if (tab === "school") setTimeout(loadSchoolPage, 120);
 
+        lastNavSwitch = Date.now();
+        // первый показ (после входа) — без анимации, дальше — плавное скольжение
+        requestAnimationFrame(() => updateNavIndicator(oldTab !== null));
     }
+
+    /* ===== СКОЛЬЗЯЩАЯ ПЛАШКА + ПЕРЕТАСКИВАНИЕ В НИЖНЕМ МЕНЮ ===== */
+    let lastNavSwitch = 0;
+
+    function visibleNavButtons() {
+        const nav = document.getElementById("bottomNav");
+        if (!nav) return [];
+        return [...nav.querySelectorAll(".nav-item")].filter(b => b.getBoundingClientRect().width > 0);
+    }
+
+    function placeNavIndicator(btn, animate) {
+        const ind = document.getElementById("navIndicator");
+        if (!ind) return;
+        if (!btn) { ind.style.opacity = "0"; return; } // активной видимой кнопки нет (напр. «Сводки» у учителя)
+        if (!animate) ind.classList.add("no-anim");
+        ind.style.top = btn.offsetTop + "px";
+        ind.style.height = btn.offsetHeight + "px";
+        ind.style.width = btn.offsetWidth + "px";
+        ind.style.transform = `translateX(${btn.offsetLeft}px)`;
+        ind.style.opacity = "1";
+        if (!animate) { void ind.offsetWidth; ind.classList.remove("no-anim"); }
+    }
+
+    function updateNavIndicator(animate = true) {
+        if (window.innerWidth >= 768) return; // на ПК боковая панель, плашка не нужна
+        const active = document.querySelector("#bottomNav .nav-item.active");
+        const visible = active && active.getBoundingClientRect().width > 0 ? active : null;
+        placeNavIndicator(visible, animate);
+    }
+    window.addEventListener("resize", () => updateNavIndicator(false));
+    window.addEventListener("orientationchange", () => setTimeout(() => updateNavIndicator(false), 200));
+
+    (function setupNavDrag() {
+        const nav = document.getElementById("bottomNav");
+        const ind = document.getElementById("navIndicator");
+        if (!nav || !ind) return;
+        const THRESHOLD = 6;           // меньше — это обычный тап, а не перетаскивание
+        let tracking = false, dragging = false, startX = 0, startLeft = 0, pid = null, suppressClick = false;
+
+        const nearestTo = (centerX, btns) => btns.reduce((best, b) => {
+            const d = Math.abs(b.offsetLeft + b.offsetWidth / 2 - centerX);
+            return !best || d < best.d ? { b, d } : best;
+        }, null)?.b;
+
+        nav.addEventListener("pointerdown", e => {
+            if (window.innerWidth >= 768 || (e.pointerType === "mouse" && e.button !== 0)) return;
+            if (!visibleNavButtons().length) return;
+            tracking = true; dragging = false; startX = e.clientX; pid = e.pointerId;
+        });
+
+        nav.addEventListener("pointermove", e => {
+            if (!tracking) return;
+            if (!dragging) {
+                if (Math.abs(e.clientX - startX) < THRESHOLD) return;
+                dragging = true;
+                try { nav.setPointerCapture(pid); } catch (_) {}
+                ind.classList.add("dragging");
+                // стартуем ровно с текущей позиции плашки — без скачка
+                const m = /translateX\((-?[\d.]+)px\)/.exec(ind.style.transform || "");
+                startLeft = m ? parseFloat(m[1]) : 0;
+                startX = e.clientX;
+            }
+            const btns = visibleNavButtons();
+            if (!btns.length) return;
+            const minLeft = btns[0].offsetLeft;
+            const maxLeft = btns[btns.length - 1].offsetLeft + btns[btns.length - 1].offsetWidth - ind.offsetWidth;
+            const left = Math.min(maxLeft, Math.max(minLeft, startLeft + (e.clientX - startX)));
+            ind.style.transform = `translateX(${left}px)`;
+            // подсвечиваем кнопку под плашкой, но саму вкладку пока НЕ переключаем
+            const near = nearestTo(left + ind.offsetWidth / 2, btns);
+            btns.forEach(b => b.classList.toggle("nav-preview", b === near));
+        });
+
+        const finish = e => {
+            if (!tracking) return;
+            const wasDragging = dragging;
+            tracking = false; dragging = false;
+            if (!wasDragging) return; // обычный тап — отработает штатный click
+            try { nav.releasePointerCapture(pid); } catch (_) {}
+            ind.classList.remove("dragging");
+            suppressClick = true; setTimeout(() => { suppressClick = false; }, 60);
+
+            const btns = visibleNavButtons();
+            btns.forEach(b => b.classList.remove("nav-preview"));
+            const m = /translateX\((-?[\d.]+)px\)/.exec(ind.style.transform || "");
+            const left = m ? parseFloat(m[1]) : 0;
+            const target = e.type === "pointercancel" ? null : nearestTo(left + ind.offsetWidth / 2, btns);
+
+            // переключаем один раз, на отпускании, и не чаще, чем раз в 300 мс
+            if (target && target.dataset.nav !== currentTab && Date.now() - lastNavSwitch > 300) {
+                if (navigator.vibrate) navigator.vibrate(8);
+                switchNav(target.dataset.nav);   // switchNav сам плавно довезёт плашку
+            } else {
+                updateNavIndicator(true);        // вернуть плашку на активную кнопку
+            }
+        };
+        nav.addEventListener("pointerup", finish);
+        nav.addEventListener("pointercancel", finish);
+
+        // после перетаскивания не даём сработать клику по кнопке под пальцем
+        nav.addEventListener("click", e => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
+    })();
 
     // Вибрация + ripple при нажатии на nav кнопки
     document.querySelectorAll("[data-nav]").forEach(btn => {
@@ -2308,10 +2452,7 @@
                 card.addEventListener("click", () => {
                     if (!sessionReadSet.has(n.id)) {
                         sessionReadSet.add(n.id);
-                        if (!n.isSystem) {
-                            db.collection("notifRead").doc(currentUserObj.uid)
-                                .set({ ids: [...sessionReadSet] }).catch(()=>{});
-                        }
+                        if (!n.isSystem) persistReadSet();
                         card.classList.remove("unread");
                         card.querySelector(".notif-unread-dot")?.remove();
                         updateNotifBadge(Math.max(0, unreadNotifCount - 1));
@@ -2344,10 +2485,7 @@
             c.classList.remove("unread");
             c.querySelector(".notif-unread-dot")?.remove();
         });
-        // Сохраняем весь Set в Firestore (перезапись, не merge)
-        db.collection("notifRead").doc(currentUserObj.uid)
-            .set({ ids: [...sessionReadSet] })
-            .catch(()=>{});
+        persistReadSet();
         updateNotifBadge(0);
         showToast("Все уведомления прочитаны");
     });
@@ -2456,7 +2594,9 @@
     }
 
     /* ===== СПИСОК ЗАДАНИЙ ===== */
+    let loadTasksSeq = 0; // токен: устаревшие параллельные вызовы loadTasks ничего не рисуют
     async function loadTasks() {
+        const mySeq = ++loadTasksSeq;
         const container = document.getElementById("tasksListContainer");
         // Показываем скелетоны сразу
         container.innerHTML = Array(3).fill(0).map(()=>`
@@ -2466,6 +2606,7 @@
                 <div class="skeleton" style="height:36px;border-radius:10px;"></div>
             </div>`).join('');
         const q = await db.collection("tasks").where("published", "==", true).get();
+        if (mySeq !== loadTasksSeq) return;
         const tasks = [];
         for (const doc of q.docs) {
             const d = doc.data();
@@ -2497,6 +2638,7 @@
                 } catch(e) { console.error("Cover load error:", e); }
             }
         }
+        if (mySeq !== loadTasksSeq) return;
 
         if (tasks.length === 0) {
             container.innerHTML = `<div class="text-center text-gray-400 py-12">
@@ -2505,7 +2647,7 @@
             </div>`;
             return;
         }
-        container.innerHTML = "";
+        const frag = document.createDocumentFragment();
         for (const t of tasks) {
             const attemptsCount = getAttemptsCount(t.id);
             const hasCompleted = attemptsCount > 0;
@@ -2577,21 +2719,24 @@
                         ${userRole === 'mentor' ? `<button data-id="${t.id}" class="invite-code-btn py-2 px-3 rounded-xl text-sm font-bold transition-all" style="background:#f0fdf4;color:#15803d;" title="Код приглашения"><i class="fas fa-qrcode"></i></button>` : ''}
                     </div>
                 </div>`;
-            container.appendChild(card);
+            frag.appendChild(card);
         }
+        if (mySeq !== loadTasksSeq) return; // пока строили карточки, запустился более новый вызов
+        container.innerHTML = "";
+        container.appendChild(frag);
 
-        document.querySelectorAll(".invite-code-btn").forEach(btn => {
+        container.querySelectorAll(".invite-code-btn").forEach(btn => {
             btn.addEventListener("click", async (e) => {
                 e.stopPropagation();
                 openInviteModal(btn.dataset.id);
             });
         });
 
-        document.querySelectorAll(".attempts-history-btn").forEach(btn => {
+        container.querySelectorAll(".attempts-history-btn").forEach(btn => {
             btn.addEventListener("click", (e) => { e.stopPropagation(); openAttemptsHistory(btn.dataset.id); });
         });
 
-        document.querySelectorAll(".task-start").forEach(btn => btn.addEventListener("click", async () => {
+        container.querySelectorAll(".task-start").forEach(btn => btn.addEventListener("click", async () => {
             if (btn.disabled) return;
             const id = btn.dataset.id;
             const snap = await db.collection("tasks").doc(id).get();
@@ -2630,15 +2775,7 @@
             document.getElementById("startTaskModal").classList.remove("hidden");
         }));
 
-        document.getElementById("startTaskNoBtn")?.addEventListener("click", () => {
-            document.getElementById("startTaskModal").classList.add("hidden");
-        });
-        document.getElementById("startTaskYesBtn")?.addEventListener("click", () => {
-            document.getElementById("startTaskModal").classList.add("hidden");
-            openTaskForSolve();
-        });
-
-        document.querySelectorAll(".cert-btn").forEach(btn => btn.addEventListener("click", async () => {
+        container.querySelectorAll(".cert-btn").forEach(btn => btn.addEventListener("click", async () => {
             const id = btn.dataset.id;
             const snap = await db.collection("tasks").doc(id).get();
             if (snap.exists) {
@@ -2647,6 +2784,16 @@
             }
         }));
     }
+
+    // Обработчики модалки «Начать задание» — навешиваются ОДИН раз (раньше были внутри loadTasks
+    // и копились при каждой перерисовке списка, из-за чего задание запускалось несколько раз за клик)
+    document.getElementById("startTaskNoBtn")?.addEventListener("click", () => {
+        document.getElementById("startTaskModal").classList.add("hidden");
+    });
+    document.getElementById("startTaskYesBtn")?.addEventListener("click", () => {
+        document.getElementById("startTaskModal").classList.add("hidden");
+        openTaskForSolve();
+    });
 
     /* ===== СИСТЕМА БАЛЛОВ ===== */
     // Баллы только за 70%+ результат
@@ -2992,7 +3139,11 @@
     async function openCustomize() {
         document.getElementById("customizeModal").classList.remove("hidden");
         custCurrentCat = 'frames';
+        // Сразу очищаем поле, чтобы не мелькало значение прошлого аккаунта, пока грузится инвентарь
+        const ti = document.getElementById("customTitleInput");
+        if (ti) ti.value = '';
         await loadPlayerInventory();
+        if (ti) ti.value = playerInventory.customTitle || '';
         renderCustItems();
     }
 
@@ -3006,8 +3157,8 @@
         const customTitleBlock = document.getElementById("customTitleBlock");
         if (custCurrentCat === 'titles') {
             customTitleBlock?.classList.remove("hidden");
-            const input = document.getElementById("customTitleInput");
-            if (input && !input.value) input.value = playerInventory.customTitle || '';
+            // значение поля задаётся один раз при открытии окна (openCustomize), здесь его не трогаем,
+            // чтобы не стирать набранный, но ещё не сохранённый текст при переключении вкладок
         } else {
             customTitleBlock?.classList.add("hidden");
         }
@@ -4394,20 +4545,56 @@
         }
     });
 
+    let myTasksSeq = 0; // токен: устаревшие вызовы не перезаписывают свежий список
     async function loadMyTasksForMentor() {
-        if (userRole !== "mentor") return;
+        if (userRole !== "mentor" || !currentUserObj) return;
+        const mySeq = ++myTasksSeq;
+        const cont = document.getElementById("myPublishedTasks");
         const snap = await db.collection("tasks").where("createdBy", "==", currentUserObj.uid).get();
-        const cont = document.getElementById("myPublishedTasks"); cont.innerHTML = "";
-        for (const doc of snap.docs) {
+        if (mySeq !== myTasksSeq) return;
+
+        // Счётчики результатов считаем параллельно, а не по одному
+        const counts = await Promise.all(snap.docs.map(d =>
+            db.collection("results").where("taskId", "==", d.id).get().then(r => r.size).catch(() => 0)
+        ));
+        if (mySeq !== myTasksSeq) return;
+
+        // Новые сверху
+        const rows = snap.docs.map((d, i) => ({ doc: d, count: counts[i] }))
+            .sort((a, b) => (b.doc.data().createdAt?.seconds || 0) - (a.doc.data().createdAt?.seconds || 0));
+
+        const frag = document.createDocumentFragment();
+        for (const { doc, count } of rows) {
             const taskData = doc.data();
-            const resultsSnap = await db.collection("results").where("taskId", "==", doc.id).get();
-            const div = document.createElement("div"); div.className = "border-b py-2 flex justify-between items-center";
-            const classesStr = Array.isArray(taskData.targetClass) ? taskData.targetClass.join(', ') : (taskData.targetClass||'');
-            div.innerHTML = `<div><span class="font-medium">${escapeHtml(taskData.title)}</span><span class="text-xs text-gray-400 ml-2">(${escapeHtml(classesStr)})</span><div class="text-xs text-blue-500">${resultsSnap.size} учеников</div></div><div><button data-id="${doc.id}" class="delMine text-red-500 text-sm mr-2">Удалить</button><button data-id="${doc.id}" class="viewTaskMentor text-blue-600 text-sm">Просмотреть</button></div>`;
-            cont.appendChild(div);
+            const classesStr = Array.isArray(taskData.targetClass) ? taskData.targetClass.join(', ') : (taskData.targetClass || '');
+            const div = document.createElement("div");
+            div.className = "border-b py-2 flex justify-between items-center";
+            div.dataset.taskId = doc.id;
+            div.innerHTML = `<div><span class="font-medium">${escapeHtml(taskData.title)}</span><span class="text-xs text-gray-400 ml-2">(${escapeHtml(classesStr)})</span><div class="text-xs text-blue-500">${count} учеников</div></div><div><button class="delMine text-red-500 text-sm mr-2">Удалить</button><button class="viewTaskMentor text-blue-600 text-sm">Просмотреть</button></div>`;
+
+            div.querySelector(".delMine").addEventListener("click", async () => {
+                if (!confirm("Удалить задание?")) return;
+                div.style.opacity = "0.4"; // сразу показываем, что удаляется
+                try {
+                    await db.collection("tasks").doc(doc.id).delete();
+                    div.remove(); // убираем строку сразу, не дожидаясь перезагрузки списка
+                    showToast("Удалено");
+                    loadMyTasksForMentor();
+                    loadTasks();
+                } catch (e) {
+                    div.style.opacity = "";
+                    showToast("Не удалось удалить: " + e.message, true);
+                }
+            });
+            div.querySelector(".viewTaskMentor").addEventListener("click", async () => {
+                const s2 = await db.collection("tasks").doc(doc.id).get();
+                if (s2.exists) { currentTask = { id: s2.id, ...s2.data() }; await openTaskForMentor(); }
+            });
+            frag.appendChild(div);
         }
-        document.querySelectorAll(".delMine").forEach(btn => btn.addEventListener("click", async () => { if (confirm("Удалить задание?")) { await db.collection("tasks").doc(btn.dataset.id).delete(); loadMyTasksForMentor(); loadTasks(); showToast("Удалено"); } }));
-        document.querySelectorAll(".viewTaskMentor").forEach(btn => btn.addEventListener("click", async () => { const id = btn.dataset.id; const snap = await db.collection("tasks").doc(id).get(); if (snap.exists) { currentTask = { id: snap.id, ...snap.data() }; await openTaskForMentor(); } }));
+        cont.innerHTML = "";
+        if (rows.length === 0) cont.innerHTML = '<div class="text-sm text-gray-400 py-3">Пока нет опубликованных заданий</div>';
+        cont.appendChild(frag);
     }
 
     // Переключатель типа задания + показ блока обложки
