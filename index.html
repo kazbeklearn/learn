@@ -1433,9 +1433,22 @@
             <div class="bg-white rounded-2xl p-4"><h3 class="font-bold text-lg mb-3">Мои задания</h3><div id="myPublishedTasks" class="space-y-2"></div></div>
         </div>
         <div id="profilePanel" class="tab-content hidden w-full">
-            <div class="bg-white rounded-2xl p-5">
+            <div class="bg-white rounded-2xl p-5 relative overflow-hidden">
+                <!-- Баннер: сверху, к аватарке и имени плавно растворяется в белый -->
+                <div id="profileBanner" class="hidden" style="position:absolute;top:0;left:0;right:0;height:150px;pointer-events:none;">
+                    <img id="profileBannerImg" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+                    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,0) 0%,rgba(255,255,255,0.12) 35%,rgba(255,255,255,0.78) 74%,#fff 100%);"></div>
+                </div>
+                <div id="bannerControls" class="hidden flex" style="position:absolute;top:10px;right:10px;z-index:3;gap:6px;">
+                    <button id="changeBannerBtn" title="Сменить баннер" class="w-8 h-8 rounded-full bg-white/85 text-gray-700 shadow flex items-center justify-center hover:bg-white"><i class="fas fa-image text-xs"></i></button>
+                    <button id="removeBannerBtn" title="Убрать баннер" class="w-8 h-8 rounded-full bg-white/85 text-red-500 shadow flex items-center justify-center hover:bg-white"><i class="fas fa-trash text-xs"></i></button>
+                </div>
+                <div id="addBannerBar" class="flex justify-end mb-2" style="position:relative;z-index:2;">
+                    <button id="addBannerBtn" class="text-xs font-semibold text-gray-400 hover:text-blue-600 transition-colors"><i class="fas fa-image mr-1"></i>Добавить баннер</button>
+                </div>
+                <input type="file" id="bannerFileInput" accept="image/*" class="hidden">
                 <!-- Аватар + выйти в одну строку -->
-                <div class="flex items-center gap-4 mb-4">
+                <div id="profileHeaderRow" class="flex items-center gap-4 mb-4" style="position:relative;z-index:1;">
                     <div class="relative flex-shrink-0">
                         <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-2xl font-bold text-blue-700 overflow-hidden" id="profileAvatar"></div>
                         <button id="changeAvatarBtn" class="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs shadow-md hover:bg-blue-700" title="Изменить фото">
@@ -1455,7 +1468,7 @@
                 </div>
 
                 <!-- Кнопки ученика -->
-                <div class="student-only hidden grid grid-cols-2 gap-2 mb-4">
+                <div class="student-only hidden grid grid-cols-3 gap-2 mb-4" style="position:relative;z-index:1;">
                     <button id="awardsBtn" class="flex flex-col items-center justify-center gap-1.5 bg-amber-50 text-amber-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-amber-100" style="min-height:70px;">
                         <i class="fas fa-trophy text-xl"></i>
                         <span class="text-xs font-bold">Достижения</span>
@@ -1464,10 +1477,14 @@
                         <i class="fas fa-palette text-xl"></i>
                         <span class="text-xs font-bold">Украшения</span>
                     </button>
+                    <button id="myClassBtn" class="flex flex-col items-center justify-center gap-1.5 bg-blue-50 text-blue-700 py-3 px-2 rounded-2xl font-semibold transition-all hover:bg-blue-100" style="min-height:70px;">
+                        <i class="fas fa-users text-xl"></i>
+                        <span class="text-xs font-bold">Мой класс</span>
+                    </button>
                 </div>
 
                 <!-- Кнопки учителя -->
-                <div class="mentor-only hidden mb-4">
+                <div class="mentor-only hidden mb-4" style="position:relative;z-index:1;">
                     <button id="customizeBtnMentor" class="flex items-center justify-center gap-2 bg-purple-50 text-purple-700 py-2.5 px-4 rounded-2xl font-semibold transition-all hover:bg-purple-100 w-full">
                         <i class="fas fa-palette"></i>
                         <span class="text-sm font-bold">Украшения профиля</span>
@@ -1621,6 +1638,17 @@
                 <p class="text-xs text-purple-400 mt-1">Только вы сможете его надеть</p>
             </div>
         </div>
+        <div id="customBadgeBlock" class="hidden px-5 pb-3 flex-shrink-0">
+            <div class="bg-amber-50 rounded-2xl p-3">
+                <label class="text-xs font-bold text-amber-700 mb-1.5 block">✍️ Свой значок</label>
+                <div class="flex gap-2">
+                    <input id="customBadgeInput" type="text" maxlength="16" placeholder="Один символ или эмодзи"
+                        class="flex-1 border border-amber-200 rounded-xl p-2 text-center focus:outline-none focus:border-amber-400" style="font-size:1.15rem;">
+                    <button id="saveCustomBadgeBtn" class="bg-amber-500 text-white px-3 rounded-xl text-sm font-bold">✓</button>
+                </div>
+                <p class="text-xs text-amber-500 mt-1">Один символ или эмодзи. Только вы сможете его надеть</p>
+            </div>
+        </div>
         <div id="customizeItemsContainer" class="flex-1 overflow-y-auto px-5 pb-6 space-y-2 mt-1"></div>
     </div>
 </div>
@@ -1659,6 +1687,19 @@
         </button>
         <div id="codeError" class="hidden text-center text-red-500 text-sm mt-2 font-semibold"></div>
     </div>
+</div>
+
+<!-- ОКНО: МОЙ КЛАСС (на весь экран) -->
+<div id="classScreen" class="fixed inset-0 hidden flex flex-col" style="z-index:45;background:linear-gradient(180deg,#f3f6fc 0%,#eef2fa 100%);">
+    <div class="flex items-center gap-3 px-4 pt-4 pb-3 flex-shrink-0">
+        <button id="closeClassScreenBtn" title="Назад" class="w-11 h-11 rounded-full bg-white shadow flex items-center justify-center text-gray-600 hover:bg-gray-50 flex-shrink-0"><i class="fas fa-arrow-left"></i></button>
+        <div class="min-w-0">
+            <div class="text-xs font-semibold text-gray-400">Мой класс</div>
+            <div id="classScreenTitle" class="text-2xl font-black text-gray-900 truncate"></div>
+        </div>
+        <div id="classScreenCount" class="ml-auto text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full flex-shrink-0"></div>
+    </div>
+    <div id="classScreenList" class="flex-1 overflow-y-auto px-4 pb-8 space-y-2" style="max-width:640px;width:100%;margin:0 auto;"></div>
 </div>
 
 <!-- МОДАЛКА: ПОДТВЕРЖДЕНИЕ ВЫХОДА -->
@@ -2069,6 +2110,8 @@
             pagesStore = [[]]; isResultPage = false;
             sessionReadSet = new Set();
             const _cti = document.getElementById("customTitleInput"); if (_cti) _cti.value = '';
+            const _cbi = document.getElementById("customBadgeInput"); if (_cbi) _cbi.value = '';
+            currentBannerUrl = null; applyBanner(); classScreenSeq++; document.getElementById("classScreen")?.classList.add("hidden");
 
             hideLoadingScreen();
             document.getElementById("authScreen").classList.remove("hidden");
@@ -2152,6 +2195,7 @@
 
         playerInventory = { equipped: {} };
         loadPlayerInventory().then(() => { applyEquippedItems(); initAvatar(); }).catch(()=>{});
+        initBanner();
 
         const lb = document.getElementById('loginBtn');
         if (lb) { lb.disabled = false; lb.textContent = 'Войти'; }
@@ -3101,6 +3145,23 @@
         try { await db.collection("inventory").doc(currentUserObj.uid).set(playerInventory); } catch(e) {}
     }
 
+    // Первый «символ» строки (эмодзи с модификаторами/ZWJ считаются одним символом)
+    function firstGrapheme(str) {
+        str = (str || '').trim();
+        if (!str) return '';
+        if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+            for (const part of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(str)) return part.segment;
+        }
+        return Array.from(str)[0] || '';
+    }
+    // Какой значок показывать: из каталога или свой
+    function resolveBadgeEmoji(inv) {
+        const id = inv?.equipped?.badge;
+        if (!id || id === 'badge_none') return '';
+        if (id === '__custom__') return inv.customBadge || '';
+        return COSMETICS.badges.find(b => b.id === id)?.emoji || '';
+    }
+
     function applyEquippedItems() {
         const avatar = document.getElementById("profileAvatar");
         const eq = playerInventory.equipped || {};
@@ -3113,10 +3174,9 @@
             if (currentAvatarUrl) avatar.innerHTML = `<img src="${currentAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
         }
 
-        const badgeId = eq.badge;
-        const badge = (badgeId && badgeId !== 'badge_none') ? COSMETICS.badges.find(b => b.id === badgeId) : null;
+        const badgeEmoji = resolveBadgeEmoji(playerInventory);
         const nameEl = document.getElementById("profileName");
-        if (nameEl) nameEl.innerHTML = badge ? `${escapeHtml(userDisplayName||'')} <span>${badge.emoji}</span>` : escapeHtml(userDisplayName||'');
+        if (nameEl) nameEl.innerHTML = badgeEmoji ? `${escapeHtml(userDisplayName||'')} <span>${escapeHtml(badgeEmoji)}</span>` : escapeHtml(userDisplayName||'');
 
         const titleId = eq.title;
         let titleText = '';
@@ -3141,9 +3201,12 @@
         custCurrentCat = 'frames';
         // Сразу очищаем поле, чтобы не мелькало значение прошлого аккаунта, пока грузится инвентарь
         const ti = document.getElementById("customTitleInput");
+        const bi = document.getElementById("customBadgeInput");
         if (ti) ti.value = '';
+        if (bi) bi.value = '';
         await loadPlayerInventory();
         if (ti) ti.value = playerInventory.customTitle || '';
+        if (bi) bi.value = playerInventory.customBadge || '';
         renderCustItems();
     }
 
@@ -3162,6 +3225,7 @@
         } else {
             customTitleBlock?.classList.add("hidden");
         }
+        document.getElementById("customBadgeBlock")?.classList.toggle("hidden", custCurrentCat !== 'badges');
 
         const items = COSMETICS[custCurrentCat] || [];
         const catKey = custCurrentCat === 'frames' ? 'frame' : custCurrentCat === 'badges' ? 'badge' : 'title';
@@ -3184,6 +3248,26 @@
                 applyEquippedItems();
                 renderCustItems();
                 showToast(`Надет: "${playerInventory.customTitle}"`);
+            });
+            container.appendChild(div);
+        }
+
+        // Свой значок показываем первым в списке (если задан)
+        if (custCurrentCat === 'badges' && playerInventory.customBadge) {
+            const equipped = playerInventory.equipped?.badge === '__custom__';
+            const div = document.createElement('div');
+            div.style.cssText = `display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;border:2px solid ${equipped?'#f59e0b':'#fde68a'};background:${equipped?'#fffbeb':'#fffdf5'};cursor:pointer;transition:all 0.18s;margin-bottom:6px;`;
+            div.innerHTML = `
+                <div style="width:44px;height:44px;border-radius:12px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">${escapeHtml(playerInventory.customBadge)}</div>
+                <div style="flex:1;"><div style="font-weight:800;font-size:0.88rem;color:#b45309;">Ваш значок</div><div style="font-size:0.75rem;color:#d97706;">Только вы можете его надеть</div></div>
+                ${equipped ? '<span style="color:#f59e0b;font-size:1.1rem;font-weight:900;">✓</span>' : ''}`;
+            div.addEventListener('click', async () => {
+                if (!playerInventory.equipped) playerInventory.equipped = {};
+                playerInventory.equipped.badge = '__custom__';
+                await savePlayerInventory();
+                applyEquippedItems();
+                renderCustItems();
+                showToast(`Надет значок: ${playerInventory.customBadge}`);
             });
             container.appendChild(div);
         }
@@ -3218,7 +3302,22 @@
         if (val.length > 24) { showToast("Максимум 24 символа", true); return; }
         playerInventory.customTitle = val;
         await savePlayerInventory();
+        applyEquippedItems(); // если свой титул уже надет — сразу обновить профиль
         showToast("✅ Титул сохранён!");
+        renderCustItems();
+    });
+
+    // Сохранение своего значка: берётся ровно один символ
+    document.getElementById("saveCustomBadgeBtn")?.addEventListener("click", async () => {
+        const input = document.getElementById("customBadgeInput");
+        const raw = (input?.value || '').trim();
+        if (!raw) { showToast("Введите символ или эмодзи", true); return; }
+        const g = firstGrapheme(raw);
+        playerInventory.customBadge = g;
+        if (input) input.value = g;
+        await savePlayerInventory();
+        applyEquippedItems(); // если свой значок уже надет — сразу обновить профиль
+        showToast(raw.length > g.length ? `Сохранён только первый символ: ${g}` : "✅ Значок сохранён!");
         renderCustItems();
     });
 
@@ -4661,7 +4760,7 @@
     let currentAvatarUrl = null;
 
     async function loadAvatar(uid) {
-        try { const doc = await db.collection("avatars").doc(uid).get(); return doc.exists ? doc.data().url || null : null; }
+        try { const doc = await db.collection("avatars").doc(uid).get(); return doc.exists ? safeImageUrl(doc.data().url) : null; }
         catch(e) { return null; }
     }
 
@@ -4717,20 +4816,22 @@
         const content = document.getElementById("publicProfileContent");
         content.innerHTML = '<div class="py-10 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>';
         try {
-            const [userDoc, avatarDoc, inventoryDoc, awardsSnap] = await Promise.all([
+            const [userDoc, avatarDoc, inventoryDoc, awardsSnap, bannerDoc] = await Promise.all([
                 db.collection("users").doc(uid).get(),
                 db.collection("avatars").doc(uid).get(),
                 db.collection("inventory").doc(uid).get(),
-                db.collection("awards").where("studentId","==",uid).get().catch(()=>({forEach:()=>{}}))
+                db.collection("awards").where("studentId","==",uid).get().catch(()=>({forEach:()=>{}})),
+                db.collection("banners").doc(uid).get().catch(()=>null)
             ]);
+            const bannerUrl = bannerDoc && bannerDoc.exists ? safeImageUrl(bannerDoc.data().url) : null;
             const uData = userDoc.exists ? userDoc.data() : {};
-            const avatarUrl = avatarDoc.exists ? avatarDoc.data().url : null;
+            const avatarUrl = avatarDoc.exists ? safeImageUrl(avatarDoc.data().url) : null;
             const inv = inventoryDoc.exists ? inventoryDoc.data() : { equipped:{} };
             const name = uData.displayName || uData.email?.split('@')[0] || 'Пользователь';
             const initial = name.charAt(0).toUpperCase();
 
             const frame = (inv.equipped?.frame && inv.equipped.frame !== 'frame_none') ? COSMETICS.frames.find(f=>f.id===inv.equipped.frame) : null;
-            const badge = (inv.equipped?.badge && inv.equipped.badge !== 'badge_none') ? COSMETICS.badges.find(b=>b.id===inv.equipped.badge) : null;
+            const badgeEmoji = resolveBadgeEmoji(inv);
 
             let titleText = '';
             if (inv.equipped?.title === '__custom__' && inv.customTitle) {
@@ -4744,16 +4845,23 @@
             if (awardsSnap?.forEach) awardsSnap.forEach(d=>awardIds.add(d.data().awardId));
 
             // Круглая аватарка с рамкой
-            const avatarStyle = (frame ? frame.css : '') + 'border-radius:50%;overflow:hidden;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#dbeafe;margin:18px auto 10px;';
+            const avatarStyle = (frame ? frame.css : '') + 'border-radius:50%;overflow:hidden;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#dbeafe;margin:' + (bannerUrl ? '-58px' : '18px') + ' auto 10px;position:relative;';
             const avatarInner = avatarUrl
                 ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`
                 : `<span style="font-size:2.1rem;font-weight:800;color:#1862CF;">${initial}</span>`;
 
             const classesStr = Array.isArray(uData.class) ? uData.class.join(', ') : (uData.class||'');
 
+            const bannerHtml = bannerUrl ? `
+                <div style="position:relative;margin:0 -20px;height:130px;overflow:hidden;">
+                    <img src="${bannerUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+                    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,0) 0%,rgba(255,255,255,0.12) 35%,rgba(255,255,255,0.8) 76%,#fff 100%);"></div>
+                </div>` : '';
+
             content.innerHTML = `
+                ${bannerHtml}
                 <div style="${avatarStyle}">${avatarInner}</div>
-                <h3 style="font-weight:900;font-size:1.2rem;color:#0f172a;text-align:center;">${escapeHtml(name)}${badge?' '+badge.emoji:''}</h3>
+                <h3 style="font-weight:900;font-size:1.2rem;color:#0f172a;text-align:center;">${escapeHtml(name)}${badgeEmoji?' '+escapeHtml(badgeEmoji):''}</h3>
                 ${titleText?`<div style="font-size:0.82rem;color:#8b5cf6;font-weight:700;margin-top:3px;text-align:center;">${titleText}</div>`:''}
                 <div style="font-size:0.82rem;color:#64748b;margin-top:5px;text-align:center;">${uData.role==='mentor'?'👨‍🏫 Наставник':'🎓 Ученик'}${classesStr?' · '+escapeHtml(classesStr):''}</div>
                 ${uData.school?`<div style="margin-top:8px;text-align:center;"><span class="school-badge"><i class="fas fa-school text-xs"></i>${escapeHtml(uData.school)}</span></div>`:''}
@@ -4770,6 +4878,199 @@
 
     document.getElementById("closePublicProfileBtn")?.addEventListener("click", () => document.getElementById("publicProfileModal").classList.add("hidden"));
     document.getElementById("publicProfileModal")?.addEventListener("click", e => { if(e.target===document.getElementById("publicProfileModal")) document.getElementById("publicProfileModal").classList.add("hidden"); });
+
+    /* ===== ПРОВЕРКА АДРЕСА КАРТИНКИ ===== */
+    // Картинки (аватар, баннер) хранятся как data-URL. Пропускаем только настоящие base64-картинки,
+    // чтобы чужая запись в Firestore не могла подмешать в страницу произвольную разметку.
+    function safeImageUrl(u) {
+        return (typeof u === 'string' && /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(u)) ? u : null;
+    }
+
+    /* ===== БАННЕР ПРОФИЛЯ ===== */
+    let currentBannerUrl = null;
+
+    function applyBanner() {
+        const has = !!currentBannerUrl;
+        const img = document.getElementById("profileBannerImg");
+        if (img) { if (has) img.src = currentBannerUrl; else img.removeAttribute("src"); }
+        document.getElementById("profileBanner")?.classList.toggle("hidden", !has);
+        document.getElementById("bannerControls")?.classList.toggle("hidden", !has);
+        document.getElementById("addBannerBar")?.classList.toggle("hidden", has);
+        const row = document.getElementById("profileHeaderRow");
+        if (row) row.style.paddingTop = has ? "56px" : "0";
+    }
+
+    async function initBanner() {
+        if (!currentUserObj) return;
+        const uid = currentUserObj.uid;
+        let url = null;
+        try {
+            const d = await db.collection("banners").doc(uid).get();
+            url = d.exists ? safeImageUrl(d.data().url) : null;
+        } catch (e) { console.error("banner: чтение не удалось:", e); }
+        if (!currentUserObj || currentUserObj.uid !== uid) return; // успели выйти/сменить аккаунт
+        currentBannerUrl = url;
+        applyBanner();
+    }
+
+    // Сжимаем до 1000×400 (обрезка по центру) — чтобы документ в Firestore оставался небольшим
+    async function compressBanner(file) {
+        const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(new Error("Не удалось прочитать файл")); r.readAsDataURL(file); });
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("Не удалось открыть изображение")); i.src = dataUrl; });
+        const W = 1000, H = 400;
+        const canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H;
+        const scale = Math.max(W / img.width, H / img.height);
+        const sw = W / scale, sh = H / scale;
+        canvas.getContext("2d").drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, W, H);
+        let q = 0.85, out;
+        do { out = canvas.toDataURL("image/jpeg", q); q -= 0.1; } while (out.length > 350000 && q > 0.3);
+        return out;
+    }
+
+    function bannerErrorText(err) {
+        return err && err.code === "permission-denied"
+            ? "Нет доступа к banners — добавьте правило для этой коллекции в Firestore"
+            : (err && err.message) || "неизвестная ошибка";
+    }
+
+    const pickBanner = () => document.getElementById("bannerFileInput")?.click();
+    document.getElementById("addBannerBtn")?.addEventListener("click", pickBanner);
+    document.getElementById("changeBannerBtn")?.addEventListener("click", pickBanner);
+    document.getElementById("bannerFileInput")?.addEventListener("change", async (e) => {
+        const file = e.target.files[0]; e.target.value = "";
+        if (!file || !currentUserObj) return;
+        if (!file.type.startsWith("image/")) { showToast("Выберите изображение", true); return; }
+        if (file.size > 12 * 1024 * 1024) { showToast("Файл слишком большой (макс 12 МБ)", true); return; }
+        const uid = currentUserObj.uid;
+        try {
+            showToast("Загружаю баннер…");
+            const url = await compressBanner(file);
+            await db.collection("banners").doc(uid).set({ url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            if (!currentUserObj || currentUserObj.uid !== uid) return;
+            currentBannerUrl = url; applyBanner();
+            showToast("✅ Баннер обновлён");
+        } catch (err) { console.error("banner save:", err); showToast("Баннер не сохранён: " + bannerErrorText(err), true); }
+    });
+    document.getElementById("removeBannerBtn")?.addEventListener("click", async () => {
+        if (!currentUserObj || !confirm("Убрать баннер?")) return;
+        try {
+            await db.collection("banners").doc(currentUserObj.uid).delete();
+            currentBannerUrl = null; applyBanner();
+            showToast("Баннер удалён");
+        } catch (err) { console.error("banner delete:", err); showToast("Не удалось удалить: " + bannerErrorText(err), true); }
+    });
+
+    /* ===== МОЙ КЛАСС ===== */
+    const avatarCache = new Map(); // uid -> проверенный url или null
+    let classScreenSeq = 0;        // токен: устаревшие загрузки ничего не рисуют
+
+    function avatarCircleHtml(url, initial, frameId, size) {
+        const frame = (frameId && frameId !== 'frame_none') ? COSMETICS.frames.find(f => f.id === frameId) : null;
+        const frameCss = frame ? frame.css : '';
+        const bg = frameCss.includes('background') ? '' : 'background:#dbeafe;';
+        const inner = url
+            ? `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`
+            : `<span style="font-weight:800;color:#1862CF;font-size:${Math.round(size * 0.4)}px;">${escapeHtml(initial)}</span>`;
+        return `<div class="cls-avatar" style="${frameCss}${bg}border-radius:50%;overflow:hidden;width:${size}px;height:${size}px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${inner}</div>`;
+    }
+
+    // Читает документы по списку id пачками по 10 (ограничение оператора "in")
+    async function fetchDocsByIds(collectionName, ids) {
+        const out = new Map();
+        const chunks = [];
+        for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
+        await Promise.all(chunks.map(chunk =>
+            db.collection(collectionName).where(firebase.firestore.FieldPath.documentId(), "in", chunk).get()
+                .then(snap => snap.forEach(d => out.set(d.id, d.data())))
+                .catch(err => console.error(`${collectionName}: пачка не прочиталась`, err))
+        ));
+        return out;
+    }
+
+    function closeClassScreen() {
+        classScreenSeq++;
+        document.getElementById("classScreen")?.classList.add("hidden");
+    }
+
+    async function openClassScreen() {
+        if (!currentUserObj) return;
+        const mySeq = ++classScreenSeq;
+        const me = currentUserObj.uid;
+        const list = document.getElementById("classScreenList");
+        document.getElementById("classScreen").classList.remove("hidden");
+        document.getElementById("classScreenTitle").textContent = userClass || "—";
+        document.getElementById("classScreenCount").textContent = "";
+
+        if (!userClass) {
+            list.innerHTML = '<div class="text-center text-gray-400 py-16 px-6">В вашем профиле не указан класс</div>';
+            return;
+        }
+        list.innerHTML = Array(4).fill('<div class="bg-white rounded-2xl p-3 flex items-center gap-3"><div class="skeleton" style="width:52px;height:52px;border-radius:50%;"></div><div class="skeleton skeleton-line" style="width:45%;margin:0;"></div></div>').join("");
+
+        try {
+            const snap = await db.collection("users").where("class", "==", userClass).get();
+            if (mySeq !== classScreenSeq) return;
+            const members = [];
+            snap.forEach(d => {
+                const u = d.data();
+                if (u.role === "mentor") return; // в списке только ученики
+                members.push({ uid: d.id, name: u.displayName || (u.email || "").split("@")[0] || "Пользователь" });
+            });
+            members.sort((a, b) => (a.uid === me ? -1 : b.uid === me ? 1 : a.name.localeCompare(b.name, "ru")));
+            document.getElementById("classScreenCount").textContent = `${members.length} чел.`;
+
+            const inventories = await fetchDocsByIds("inventory", members.map(m => m.uid)); // маленькие документы: рамки
+            if (mySeq !== classScreenSeq) return;
+            if (currentAvatarUrl) avatarCache.set(me, currentAvatarUrl);
+
+            const avatarEls = new Map();
+            const frag = document.createDocumentFragment();
+            members.forEach(m => {
+                const frameId = inventories.get(m.uid)?.equipped?.frame;
+                const card = document.createElement("button");
+                card.type = "button";
+                card.className = "w-full flex items-center gap-3 p-3 rounded-2xl bg-white text-left shadow-sm hover:shadow-md transition-all";
+                card.innerHTML = `${avatarCircleHtml(avatarCache.get(m.uid) || null, m.name.charAt(0).toUpperCase(), frameId, 52)}
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold text-gray-900 truncate">${escapeHtml(m.name)}</div>
+                        ${m.uid === me ? '<div class="text-xs font-semibold text-blue-500">Это вы</div>' : ''}
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300 text-xs"></i>`;
+                card.addEventListener("click", () => openPublicProfile(m.uid));
+                avatarEls.set(m.uid, card.querySelector(".cls-avatar"));
+                frag.appendChild(card);
+            });
+            list.innerHTML = "";
+            list.appendChild(frag);
+            if (members.length === 1) list.insertAdjacentHTML("beforeend", '<div class="text-center text-gray-400 text-sm py-6">Пока в классе только вы</div>');
+
+            // Аватарки тяжёлые (base64 в Firestore) — догружаем по одной, 4 параллельно, по мере прихода
+            const queue = members.filter(m => !avatarCache.has(m.uid));
+            let next = 0;
+            const worker = async () => {
+                while (next < queue.length) {
+                    const m = queue[next++];
+                    if (mySeq !== classScreenSeq) return;
+                    let url = null;
+                    try { const d = await db.collection("avatars").doc(m.uid).get(); url = d.exists ? safeImageUrl(d.data().url) : null; } catch (e) {}
+                    avatarCache.set(m.uid, url);
+                    const el = avatarEls.get(m.uid);
+                    if (url && el && mySeq === classScreenSeq) el.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+                }
+            };
+            await Promise.all([worker(), worker(), worker(), worker()]);
+        } catch (err) {
+            console.error("class screen:", err);
+            if (mySeq === classScreenSeq) list.innerHTML = `<div class="text-center text-red-400 py-12 px-6">Не удалось загрузить класс: ${escapeHtml(err.message || "")}</div>`;
+        }
+    }
+    document.getElementById("myClassBtn")?.addEventListener("click", openClassScreen);
+    document.getElementById("closeClassScreenBtn")?.addEventListener("click", closeClassScreen);
+    document.addEventListener("keydown", e => {
+        if (e.key !== "Escape") return;
+        if (!document.getElementById("publicProfileModal").classList.contains("hidden")) return; // сначала закрывается профиль
+        if (!document.getElementById("classScreen").classList.contains("hidden")) closeClassScreen();
+    });
 
     /* ===== ОБНОВЛЕНИЕ БАЛЛОВ ПОСЛЕ ТРАТ ===== */
     const _origSaveInventory = savePlayerInventory;
